@@ -122,6 +122,53 @@
     background: var(--red-bg); color: var(--red);
   }
   .nav-badge.amber { background: var(--amber-bg); color: var(--amber); }
+  .nav-badge.ok { background: var(--green-bg); color: var(--green); }
+
+  /* Popover / dropdown */
+  .pop-backdrop { position: fixed; inset: 0; z-index: 90; }
+  .popover { position: absolute; top: calc(100% + 8px); right: 0; width: 320px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; box-shadow: var(--shadow-lg); z-index: 100; overflow: hidden; animation: modalIn 0.16s cubic-bezier(0.16,1,0.3,1); }
+  .pop-head { padding: 13px 16px; font-size: 13px; font-weight: 700; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 8px; }
+  .pop-count { background: var(--brand-50); color: var(--brand-700); font-size: 11px; font-weight: 700; padding: 1px 8px; border-radius: 99px; }
+  .pop-body { max-height: 320px; overflow-y: auto; }
+  .pop-userhead { padding: 16px; display: flex; align-items: center; gap: 12px; border-bottom: 1px solid var(--border); }
+  .pop-item { display: flex; align-items: center; gap: 11px; padding: 11px 14px; width: 100%; text-align: left; background: transparent; border: none; border-bottom: 1px solid var(--border); transition: background 0.12s; }
+  .pop-item:last-child { border-bottom: none; }
+  .pop-item:hover { background: var(--surface-2); }
+  .pop-ico { width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 14px; flex-shrink: 0; }
+  .pop-t { font-size: 13px; font-weight: 600; display: block; }
+  .pop-s { font-size: 11.5px; color: var(--text-3); display: block; margin-top: 1px; }
+  .pop-foot { width: 100%; padding: 11px; text-align: center; font-size: 12.5px; font-weight: 600; color: var(--brand-700); background: var(--surface-2); border: none; border-top: 1px solid var(--border); }
+  .pop-foot:hover { background: var(--brand-50); }
+
+  /* Active search chip */
+  .search-chip { display: inline-flex; align-items: center; gap: 7px; background: var(--brand-50); color: var(--brand-700); border: 1px solid var(--brand-100); padding: 5px 8px 5px 12px; border-radius: 8px; font-size: 12.5px; font-weight: 600; }
+  .search-chip button { border: none; background: transparent; color: var(--brand-700); font-size: 15px; line-height: 1; padding: 0 2px; }
+
+  /* Team cards */
+  .team-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
+  .team-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; box-shadow: var(--shadow-sm); display: flex; gap: 16px; }
+  .team-av { width: 56px; height: 56px; border-radius: 14px; display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 800; font-size: 19px; flex-shrink: 0; }
+  .team-name { font-size: 15.5px; font-weight: 800; letter-spacing: -0.3px; }
+  .team-role { font-size: 12.5px; color: var(--text-2); margin-top: 2px; }
+  .team-stats { display: flex; gap: 18px; margin-top: 12px; }
+  .team-stat .ts-num { font-size: 18px; font-weight: 800; }
+  .team-stat .ts-lab { font-size: 11px; color: var(--text-3); }
+  .team-contact { font-size: 11.5px; color: var(--text-3); margin-top: 10px; }
+
+  /* Settings rows */
+  .set-row { display: flex; align-items: center; gap: 16px; padding: 16px 18px; border-bottom: 1px solid var(--border); }
+  .set-row:last-child { border-bottom: none; }
+  .set-info { flex: 1; }
+  .set-title { font-size: 13.5px; font-weight: 700; }
+  .set-desc { font-size: 12px; color: var(--text-3); margin-top: 2px; line-height: 1.5; }
+
+  /* Analyze result */
+  .anz-grid { display: grid; grid-template-columns: 300px 1fr; gap: 20px; }
+  .anz-field { padding: 12px 14px; border-bottom: 1px solid var(--border); }
+  .anz-field:last-child { border-bottom: none; }
+  .anz-k { font-size: 11px; font-weight: 700; color: var(--text-3); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
+  .anz-v { font-size: 13.5px; line-height: 1.55; }
+  .anz-tag { display: inline-block; font-size: 11.5px; font-weight: 700; padding: 3px 10px; border-radius: 6px; margin: 2px 4px 2px 0; }
 
   .sidebar-footer {
     padding: 12px 14px; border-top: 1px solid var(--border);
@@ -772,6 +819,9 @@ function App() {
   const [showGuide, setShowGuide] = useState(() => !localStorage.getItem('labai_onboarded'));
   const [samples, setSamples] = useState(INITIAL_SAMPLES);
   const [toast, setToast] = useState(null);
+  const [search, setSearch] = useState('');
+  const [pendingNewSample, setPendingNewSample] = useState(false);
+  const [reportSampleId, setReportSampleId] = useState(null);
 
   const closeGuide = () => { setShowGuide(false); localStorage.setItem('labai_onboarded','1'); };
 
@@ -795,27 +845,40 @@ function App() {
   const updateSampleState = (id, state) => {
     setSamples(prev => prev.map(s => s.id === id ? { ...s, state } : s));
   };
+  const openReportFor = (id) => { setReportSampleId(id); setView('reports'); };
+  const goNewSample = () => { setPendingNewSample(true); setView('samples'); };
+  const submitSearch = (q) => { setSearch(q); setView('samples'); };
 
   const titles = {
-    dashboard: ['Panel general', 'Resumen de actividad del laboratorio'],
-    samples:   ['Muestras', 'Trazabilidad y flujo de trabajo'],
-    chat:      ['Asistente IA', 'Consulta clínica inteligente sobre protocolos y muestras'],
-    reports:   ['Informes', 'Redacción asistida con inteligencia artificial'],
-    quality:   ['Calidad y trazabilidad', 'Auditoría · ISO 15189 · RGPD'],
+    dashboard: ['Panel general'],
+    samples:   ['Muestras'],
+    chat:      ['Asistente IA'],
+    reports:   ['Informes'],
+    quality:   ['Calidad y trazabilidad'],
+    archive:   ['Archivo histórico'],
+    analyze:   ['Análisis IA'],
+    team:      ['Equipo'],
+    settings:  ['Configuración'],
   };
+  const fullHeight = view==='chat' || view==='reports';
 
   return (
     <div className="app">
       <Sidebar view={view} setView={setView} samples={samples} />
       <div className="main">
-        <Topbar title={titles[view]} hasKey={hasKey} onKeyClick={() => setShowKeyModal(true)} onGuide={() => setShowGuide(true)} />
+        <Topbar title={titles[view]||['']} hasKey={hasKey} onKeyClick={() => setShowKeyModal(true)} onGuide={() => setShowGuide(true)}
+                samples={samples} search={search} setSearch={setSearch} onSubmitSearch={submitSearch} onNavigate={setView} />
         <div className="content">
-          <div className="content-narrow" style={{height: (view==='chat'||view==='reports') ? '100%' : 'auto'}}>
-            {view === 'dashboard' && <Dashboard samples={samples} setView={setView} />}
-            {view === 'samples'   && <Samples samples={samples} addSample={addSample} updateState={updateSampleState} />}
+          <div className="content-narrow" style={{height: fullHeight ? '100%' : 'auto'}}>
+            {view === 'dashboard' && <Dashboard samples={samples} setView={setView} onNewSample={goNewSample} />}
+            {view === 'samples'   && <Samples samples={samples} addSample={addSample} updateState={updateSampleState} search={search} setSearch={setSearch} pendingNew={pendingNewSample} clearPendingNew={()=>setPendingNewSample(false)} onOpenReport={openReportFor} />}
             {view === 'chat'      && <Chat apiKey={apiKey} hasKey={hasKey} onNeedKey={() => setShowKeyModal(true)} samples={samples} />}
-            {view === 'reports'   && <Reports apiKey={apiKey} hasKey={hasKey} onNeedKey={() => setShowKeyModal(true)} samples={samples} showToast={showToast} />}
-            {view === 'quality'   && <Quality samples={samples} />}
+            {view === 'reports'   && <Reports apiKey={apiKey} hasKey={hasKey} onNeedKey={() => setShowKeyModal(true)} samples={samples} showToast={showToast} initialSampleId={reportSampleId} />}
+            {view === 'quality'   && <Quality samples={samples} showToast={showToast} />}
+            {view === 'archive'   && <Archive samples={samples} updateState={updateSampleState} onOpenReport={openReportFor} />}
+            {view === 'analyze'   && <Analyze hasKey={hasKey} apiKey={apiKey} onNeedKey={() => setShowKeyModal(true)} />}
+            {view === 'team'      && <Team />}
+            {view === 'settings'  && <Settings apiKey={apiKey} hasKey={hasKey} onKeyClick={() => setShowKeyModal(true)} onSaveKey={(k)=>{saveKey(k); showToast(k.startsWith('gsk_')?'IA activada':'Clave eliminada');}} onShowGuide={() => setShowGuide(true)} onReset={()=>{setSamples(INITIAL_SAMPLES); SID=926; showToast('Datos de demostración restablecidos');}} showToast={showToast} />}
           </div>
         </div>
       </div>
@@ -830,25 +893,24 @@ function App() {
 /* ════════════════ SIDEBAR ════════════════ */
 function Sidebar({ view, setView, samples }) {
   const urgent = samples.filter(s => s.urgent && s.state !== 'validado').length;
-  const pend   = samples.filter(s => s.state !== 'validado').length;
+  const validated = samples.filter(s => s.state === 'validado').length;
   const nav = [
     { group:'Laboratorio', items:[
       { id:'dashboard', ico:I.dash, label:'Panel general' },
       { id:'samples', ico:I.sample, label:'Muestras', badge: urgent ? {n:urgent, t:'red'} : null },
       { id:'reports', ico:I.report, label:'Informes' },
+      { id:'archive', ico:I.archive, label:'Archivo histórico', badge: validated ? {n:validated, t:'ok'} : null },
     ]},
     { group:'Inteligencia IA', items:[
       { id:'chat', ico:I.ai, label:'Asistente IA' },
+      { id:'analyze', ico:I.analyze, label:'Análisis IA' },
     ]},
     { group:'Sistema', items:[
       { id:'quality', ico:I.quality, label:'Calidad' },
+      { id:'team', ico:I.team, label:'Equipo' },
+      { id:'settings', ico:I.settings, label:'Configuración' },
     ]},
   ];
-  const extraStatic = {
-    'Laboratorio': [{ ico:I.archive, label:'Archivo histórico' }],
-    'Inteligencia IA': [{ ico:I.analyze, label:'Análisis de documentos' }, { ico:I.report, label:'Redacción IA' }],
-    'Sistema': [{ ico:I.team, label:'Equipo' }, { ico:I.settings, label:'Configuración' }],
-  };
 
   return (
     <aside className="sidebar">
@@ -867,12 +929,7 @@ function Sidebar({ view, setView, samples }) {
               <button key={it.id} className={`nav-item${view===it.id?' active':''}`} onClick={()=>setView(it.id)}>
                 <span className="nav-ico">{it.ico}</span>
                 {it.label}
-                {it.badge && <span className={`nav-badge ${it.badge.t==='amber'?'amber':''}`}>{it.badge.n}</span>}
-              </button>
-            ))}
-            {(extraStatic[g.group]||[]).map((it,i) => (
-              <button key={'s'+i} className="nav-item" onClick={()=>{}}>
-                <span className="nav-ico">{it.ico}</span>{it.label}
+                {it.badge && <span className={`nav-badge ${it.badge.t==='amber'?'amber':it.badge.t==='ok'?'ok':''}`}>{it.badge.n}</span>}
               </button>
             ))}
           </div>
@@ -889,16 +946,24 @@ function Sidebar({ view, setView, samples }) {
 }
 
 /* ════════════════ TOPBAR ════════════════ */
-function Topbar({ title, hasKey, onKeyClick, onGuide }) {
+function Topbar({ title, hasKey, onKeyClick, onGuide, samples, search, setSearch, onSubmitSearch, onNavigate }) {
+  const [notifOpen, setNotifOpen] = useState(false);
+  const [userOpen, setUserOpen] = useState(false);
+  const urgent = samples.filter(s=>s.urgent && s.state!=='validado');
+  const notifs = [
+    ...urgent.map(s=>({ ico:'⚠️', bg:'red', t:`Caso urgente: ${s.id}`, s:`${s.type} · ${s.patient}` })),
+    { ico:'🤖', bg:'teal', t:'Borrador IA generado', s:'BP-25-00923 · listo para revisar' },
+    { ico:'📥', bg:'blue', t:'8 muestras recibidas', s:'Hospital del Mar · valija 14:00' },
+  ];
   return (
     <header className="topbar">
       <div className="breadcrumb">
         <span className="crumb-main">{title[0]}</span>
       </div>
-      <div className="topbar-search">
+      <form className="topbar-search" onSubmit={e=>{ e.preventDefault(); onSubmitSearch(search); }}>
         <span className="search-ico">{I.search}</span>
-        <input placeholder="Buscar muestra, paciente, referencia..." />
-      </div>
+        <input placeholder="Buscar muestra, paciente, referencia..." value={search} onChange={e=>setSearch(e.target.value)} />
+      </form>
       <div className="topbar-right">
         <button className="ai-pill" onClick={onGuide} style={{padding:'0 12px'}} title="Ver guía de uso">
           <span style={{fontWeight:800,color:'var(--brand-600)'}}>?</span> Guía
@@ -907,13 +972,46 @@ function Topbar({ title, hasKey, onKeyClick, onGuide }) {
           <span className="ai-dot"></span>
           {hasKey ? 'IA activa' : 'Activar IA'}
         </button>
-        <button className="icon-btn"><span className="dot-alert"></span>{I.bell}</button>
-        <div className="user-chip">
-          <div className="user-av">MV</div>
-          <div className="user-meta">
-            <div className="user-name">Dra. M. Vendrell</div>
-            <div className="user-role">Patóloga · Admin</div>
-          </div>
+        <div style={{position:'relative'}}>
+          <button className="icon-btn" onClick={()=>{setNotifOpen(o=>!o); setUserOpen(false);}}>{urgent.length>0 && <span className="dot-alert"></span>}{I.bell}</button>
+          {notifOpen && (
+            <Portal><div className="pop-backdrop" onClick={()=>setNotifOpen(false)}/></Portal>
+          )}
+          {notifOpen && (
+            <div className="popover">
+              <div className="pop-head">Notificaciones <span className="pop-count">{notifs.length}</span></div>
+              <div className="pop-body">
+                {notifs.map((n,i)=>(
+                  <button className="pop-item" key={i} onClick={()=>{ setNotifOpen(false); onNavigate('samples'); }}>
+                    <span className="pop-ico" style={{background:auditBg[n.bg][0],color:auditBg[n.bg][1]}}>{n.ico}</span>
+                    <span><span className="pop-t">{n.t}</span><span className="pop-s">{n.s}</span></span>
+                  </button>
+                ))}
+              </div>
+              <button className="pop-foot" onClick={()=>{ setNotifOpen(false); onNavigate('quality'); }}>Ver registro completo →</button>
+            </div>
+          )}
+        </div>
+        <div style={{position:'relative'}}>
+          <button className="user-chip" onClick={()=>{setUserOpen(o=>!o); setNotifOpen(false);}} style={{background:'transparent',border:'none'}}>
+            <div className="user-av">MV</div>
+            <div className="user-meta" style={{textAlign:'left'}}>
+              <div className="user-name">Dra. M. Vendrell</div>
+              <div className="user-role">Patóloga · Admin</div>
+            </div>
+          </button>
+          {userOpen && <Portal><div className="pop-backdrop" onClick={()=>setUserOpen(false)}/></Portal>}
+          {userOpen && (
+            <div className="popover" style={{width:230}}>
+              <div className="pop-userhead">
+                <div className="user-av" style={{width:42,height:42,fontSize:15}}>MV</div>
+                <div><div style={{fontWeight:700,fontSize:13.5}}>Dra. Marta Vendrell</div><div style={{fontSize:11.5,color:'var(--text-3)'}}>marta.vendrell@bcnpatolegs.com</div></div>
+              </div>
+              <button className="pop-item" onClick={()=>{setUserOpen(false); onNavigate('team');}}><span className="pop-ico" style={{background:'var(--brand-50)',color:'var(--brand-700)'}}>{I.team}</span><span className="pop-t">Equipo del laboratorio</span></button>
+              <button className="pop-item" onClick={()=>{setUserOpen(false); onNavigate('settings');}}><span className="pop-ico" style={{background:'var(--brand-50)',color:'var(--brand-700)'}}>{I.settings}</span><span className="pop-t">Configuración</span></button>
+              <button className="pop-item" onClick={()=>{setUserOpen(false); onGuide();}}><span className="pop-ico" style={{background:'var(--brand-50)',color:'var(--brand-700)',fontWeight:800}}>?</span><span className="pop-t">Ver guía de uso</span></button>
+            </div>
+          )}
         </div>
       </div>
     </header>
@@ -921,7 +1019,7 @@ function Topbar({ title, hasKey, onKeyClick, onGuide }) {
 }
 
 /* ════════════════ DASHBOARD ════════════════ */
-function Dashboard({ samples, setView }) {
+function Dashboard({ samples, setView, onNewSample }) {
   const total = samples.length;
   const urgent = samples.filter(s=>s.urgent && s.state!=='validado').length;
   const inProc = samples.filter(s=>['tallado','procesando','diagnostico'].includes(s.state)).length;
@@ -957,7 +1055,7 @@ function Dashboard({ samples, setView }) {
         </div>
         <div className="page-head-actions">
           <button className="btn btn-ghost" onClick={()=>setView('quality')}>Ver auditoría</button>
-          <button className="btn btn-primary" onClick={()=>setView('samples')}>{I.plus} Nueva muestra</button>
+          <button className="btn btn-primary" onClick={onNewSample}>{I.plus} Nueva muestra</button>
         </div>
       </div>
 
@@ -1052,13 +1150,20 @@ function Dashboard({ samples, setView }) {
 }
 
 /* ════════════════ SAMPLES ════════════════ */
-function Samples({ samples, addSample, updateState }) {
+function Samples({ samples, addSample, updateState, search, setSearch, pendingNew, clearPendingNew, onOpenReport }) {
   const [mode, setMode] = useState('kanban');
   const [filter, setFilter] = useState('all');
   const [selected, setSelected] = useState(null);
   const [showNew, setShowNew] = useState(false);
 
-  const filtered = filter==='all' ? samples : samples.filter(s=>s.spec===filter);
+  useEffect(()=>{ if (pendingNew) { setShowNew(true); clearPendingNew(); } }, [pendingNew]);
+
+  const q = (search||'').trim().toLowerCase();
+  const filtered = samples.filter(s=>{
+    if (filter!=='all' && s.spec!==filter) return false;
+    if (q && !(`${s.id} ${s.patient} ${s.type} ${s.ref} ${s.tech}`.toLowerCase().includes(q))) return false;
+    return true;
+  });
   const cols = ['recibida','tallado','procesando','diagnostico','validado'];
 
   return (
@@ -1066,7 +1171,7 @@ function Samples({ samples, addSample, updateState }) {
       <div className="page-head">
         <div>
           <h1>Muestras</h1>
-          <p>{filtered.length} muestras · trazabilidad completa en tiempo real</p>
+          <p>{filtered.length} muestra{filtered.length!==1?'s':''}{q?` · resultados para “${search}”`:' · trazabilidad completa en tiempo real'}</p>
         </div>
         <div className="page-head-actions">
           <button className="btn btn-primary" onClick={()=>setShowNew(true)}>{I.plus} Nueva muestra</button>
@@ -1085,6 +1190,7 @@ function Samples({ samples, addSample, updateState }) {
               <button key={sp} className={`btn btn-sm ${filter===sp?'btn-soft':'btn-ghost'}`} onClick={()=>setFilter(sp)}>{SPECIALTIES[sp].short}</button>
             ))}
           </div>
+          {q && <span className="search-chip" style={{marginLeft:'auto'}}>{I.search} “{search}” <button onClick={()=>setSearch('')}>×</button></span>}
         </div>
       </div>
 
@@ -1151,13 +1257,17 @@ function Samples({ samples, addSample, updateState }) {
         </div>
       )}
 
-      {selected && <SampleDrawer sample={selected} onClose={()=>setSelected(null)} updateState={updateState} setSelected={setSelected} />}
+      {filtered.length===0 && (
+        <div className="card"><div className="empty"><div className="empty-ico">🔍</div><h3>Sin resultados</h3><p>No hay muestras que coincidan con los filtros o la búsqueda actual.</p>{q && <button className="btn btn-soft" style={{marginTop:14}} onClick={()=>setSearch('')}>Limpiar búsqueda</button>}</div></div>
+      )}
+
+      {selected && <SampleDrawer sample={selected} onClose={()=>setSelected(null)} updateState={updateState} setSelected={setSelected} onOpenReport={onOpenReport} />}
       {showNew && <NewSampleModal onClose={()=>setShowNew(false)} onAdd={(s)=>{addSample(s); setShowNew(false);}} />}
     </div>
   );
 }
 
-function SampleDrawer({ sample, onClose, updateState, setSelected }) {
+function SampleDrawer({ sample, onClose, updateState, setSelected, onOpenReport }) {
   const s = sample;
   const [bg,fg] = specStyle(s.spec);
   const trace = TRACE(s);
@@ -1228,7 +1338,7 @@ function SampleDrawer({ sample, onClose, updateState, setSelected }) {
         <div className="drawer-foot">
           {canAdvance && <button className="btn btn-primary" style={{flex:1}} onClick={advance}>Avanzar a: {STATES[nextState].label}</button>}
           {!canAdvance && <button className="btn btn-soft" style={{flex:1}} disabled>✓ Caso validado y cerrado</button>}
-          <button className="btn btn-ghost">{I.doc} Informe</button>
+          <button className="btn btn-ghost" onClick={()=>{ onClose(); onOpenReport && onOpenReport(s.id); }}>{I.doc} Informe</button>
         </div>
       </div>
     </div>
@@ -1469,9 +1579,9 @@ function FormatText({ text }) {
 }
 
 /* ════════════════ REPORTS ════════════════ */
-function Reports({ apiKey, hasKey, onNeedKey, samples, showToast }) {
+function Reports({ apiKey, hasKey, onNeedKey, samples, showToast, initialSampleId }) {
   const validatable = samples;
-  const [sampleId, setSampleId] = useState(samples.find(s=>s.state==='diagnostico')?.id || samples[0]?.id);
+  const [sampleId, setSampleId] = useState(initialSampleId || samples.find(s=>s.state==='diagnostico')?.id || samples[0]?.id);
   const sample = samples.find(s=>s.id===sampleId) || samples[0];
   const [spec, setSpec] = useState(sample?.spec || 'Dermatopatología');
   const [template, setTemplate] = useState(REPORT_TEMPLATES[sample?.spec||'Dermatopatología'][0]);
@@ -1650,7 +1760,14 @@ function ReportRender({ text }) {
 }
 
 /* ════════════════ QUALITY ════════════════ */
-function Quality({ samples }) {
+function Quality({ samples, showToast }) {
+  const exportAudit = () => {
+    const head = 'BCN PATÒLEGS — REGISTRO DE AUDITORÍA (ISO 15189:2022)\nExportado: 28/06/2025\n' + '='.repeat(60) + '\n\n';
+    const body = AUDIT.map(a=>`[${a.time}] ${a.tag.toUpperCase()}\n${a.desc}\nUsuario: ${a.who}\n`).join('\n');
+    const blob = new Blob([head+body], {type:'text/plain'});
+    const u = URL.createObjectURL(blob); const el=document.createElement('a'); el.href=u; el.download='BCN_Patolegs_auditoria.txt'; el.click();
+    showToast && showToast('Auditoría exportada');
+  };
   const aiUses = AUDIT.filter(a=>a.tag==='IA').length + 9;
   const iso = [
     ['Trazabilidad de muestras', 99, 'green'],
@@ -1670,7 +1787,7 @@ function Quality({ samples }) {
     <div>
       <div className="page-head">
         <div><h1>Calidad y trazabilidad</h1><p>Registro de auditoría · ISO 15189:2022 · cumplimiento RGPD</p></div>
-        <div className="page-head-actions"><button className="btn btn-ghost">{I.download} Exportar auditoría</button></div>
+        <div className="page-head-actions"><button className="btn btn-ghost" onClick={exportAudit}>{I.download} Exportar auditoría</button></div>
       </div>
 
       <div className="stat-grid">
@@ -1719,6 +1836,231 @@ function Quality({ samples }) {
                   <span className="audit-tag" style={{background:'var(--green-bg)',color:'var(--green)'}}>✓ {v}</span>
                 </div>
               ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ════════════════ ARCHIVO ════════════════ */
+function Archive({ samples, updateState, onOpenReport }) {
+  const [search, setSearch] = useState('');
+  const [selected, setSelected] = useState(null);
+  const validated = samples.filter(s=>s.state==='validado');
+  const q = search.trim().toLowerCase();
+  const list = q ? validated.filter(s=>`${s.id} ${s.patient} ${s.type} ${s.spec}`.toLowerCase().includes(q)) : validated;
+  return (
+    <div>
+      <div className="page-head">
+        <div><h1>Archivo histórico</h1><p>{validated.length} casos validados y cerrados · consulta y reimpresión de informes</p></div>
+      </div>
+      <div className="card" style={{marginBottom:16}}>
+        <div className="card-head" style={{padding:'12px 16px'}}>
+          <div className="topbar-search" style={{maxWidth:340,margin:0}}>
+            <span className="search-ico">{I.search}</span>
+            <input placeholder="Buscar en el archivo…" value={search} onChange={e=>setSearch(e.target.value)} />
+          </div>
+        </div>
+      </div>
+      <div className="card">
+        {list.length===0 ? (
+          <div className="empty"><div className="empty-ico">🗂</div><h3>Sin casos archivados</h3><p>Aún no hay casos validados que coincidan con la búsqueda.</p></div>
+        ) : (
+          <div className="tbl-wrap">
+            <table className="tbl">
+              <thead><tr><th>Referencia</th><th>Tipo de muestra</th><th>Paciente</th><th>Especialidad</th><th>Patólogo</th><th>Recepción</th><th></th></tr></thead>
+              <tbody>
+                {list.map(s=>{ const [bg,fg]=specStyle(s.spec); return (
+                  <tr key={s.id} onClick={()=>setSelected(s)}>
+                    <td><span className="mono">{s.id}</span></td>
+                    <td style={{fontWeight:600,maxWidth:240}}>{s.type}</td>
+                    <td>{s.patient}</td>
+                    <td><span className="spec-pill" style={{background:bg,color:fg}}>{SPECIALTIES[s.spec].short}</span></td>
+                    <td style={{color:'var(--text-2)'}}>{s.tech}</td>
+                    <td style={{color:'var(--text-3)',fontSize:12}}>{s.received}</td>
+                    <td><button className="btn btn-ghost btn-sm" onClick={e=>{e.stopPropagation(); onOpenReport(s.id);}}>{I.doc} Informe</button></td>
+                  </tr>
+                );})}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+      {selected && <SampleDrawer sample={selected} onClose={()=>setSelected(null)} updateState={updateState} setSelected={setSelected} onOpenReport={onOpenReport} />}
+    </div>
+  );
+}
+
+/* ════════════════ ANÁLISIS IA ════════════════ */
+function simulateAnalysis(doc) {
+  const base = {
+    'Dermatopatología':{ tipo:'Informe dermatopatológico', diag:'Melanoma maligno (Breslow 1,2 mm)', riesgo:'Alto' },
+    'Patología mamaria':{ tipo:'Biopsia mamaria (BAG)', diag:'Carcinoma ductal infiltrante, grado 2', riesgo:'Alto' },
+    'Ginecológica':{ tipo:'Citología cervical', diag:'Lesión intraepitelial de bajo grado (LSIL)', riesgo:'Medio' },
+    'Digestiva':{ tipo:'Biopsia de colon', diag:'Adenoma tubular con displasia de bajo grado', riesgo:'Bajo' },
+  };
+  return base[doc.spec] || base['Digestiva'];
+}
+const ANZ_DOCS = INITIAL_SAMPLES.filter(s=>s.state==='validado' || s.urgent).slice(0,5);
+
+function Analyze({ hasKey, apiKey, onNeedKey }) {
+  const [docId, setDocId] = useState(ANZ_DOCS[0]?.id);
+  const doc = ANZ_DOCS.find(d=>d.id===docId) || ANZ_DOCS[0];
+  const [result, setResult] = useState(null);
+  const [busy, setBusy] = useState(false);
+
+  const analyze = async () => {
+    setBusy(true); setResult(null);
+    await sleep(900 + Math.random()*700);
+    const a = simulateAnalysis(doc);
+    setResult({
+      partes:[doc.patient + ` (${doc.age} años)`, doc.ref],
+      fecha: doc.received,
+      tipoDoc: a.tipo,
+      diagnostico: a.diag,
+      riesgo: a.riesgo,
+      snomed: SNOMED[doc.spec],
+      claves:['Confirmar márgenes de resección','Valorar técnicas complementarias (IHQ)','Correlación clínica recomendada'],
+    });
+    setBusy(false);
+  };
+
+  const riskColor = (r)=> r==='Alto' ? ['var(--red-bg)','var(--red)'] : r==='Medio' ? ['var(--amber-bg)','var(--amber)'] : ['var(--green-bg)','var(--green)'];
+
+  return (
+    <div>
+      <div className="page-head">
+        <div><h1>Análisis IA de documentos</h1><p>Extracción estructurada automática de datos clave de cualquier documento del laboratorio</p></div>
+      </div>
+      <div className="anz-grid">
+        <div className="card" style={{height:'fit-content'}}>
+          <div className="card-head"><h3>{I.analyze} Documento a analizar</h3></div>
+          <div style={{padding:'10px'}}>
+            {ANZ_DOCS.map(d=>(
+              <button key={d.id} className={`doc-item${docId===d.id?' active':''}`} onClick={()=>{setDocId(d.id); setResult(null);}}>
+                <div className="doc-item-top"><span>{I.doc}</span><span className="doc-item-name">{d.id}</span></div>
+                <div className="doc-item-meta">{d.type.slice(0,38)}</div>
+              </button>
+            ))}
+            <button className="btn btn-primary" style={{width:'100%',marginTop:10}} onClick={analyze} disabled={busy}>
+              {busy ? <><span className="spinner"></span> Analizando…</> : <>{I.ai} Analizar con IA</>}
+            </button>
+            {!hasKey && <p style={{fontSize:11,color:'var(--text-3)',marginTop:9,textAlign:'center'}}>● Modo demostración</p>}
+          </div>
+        </div>
+
+        <div className="card">
+          <div className="card-head"><h3>📋 Datos extraídos</h3>{result && <div className="card-actions"><span className="audit-tag" style={{background:'var(--green-bg)',color:'var(--green)'}}>✓ Análisis completado</span></div>}</div>
+          {!result ? (
+            <div className="empty"><div className="empty-ico">🧠</div><h3>{busy?'Analizando documento…':'Sin análisis todavía'}</h3><p>{busy?'La IA está extrayendo los datos clave.':'Selecciona un documento y pulsa «Analizar con IA» para extraer automáticamente sus datos.'}</p></div>
+          ) : (
+            <div>
+              <div className="anz-field"><div className="anz-k">Tipo de documento</div><div className="anz-v">{result.tipoDoc}</div></div>
+              <div className="anz-field"><div className="anz-k">Partes / identificación</div><div className="anz-v">{result.partes.join(' · ')}</div></div>
+              <div className="anz-field"><div className="anz-k">Fecha</div><div className="anz-v">{result.fecha}</div></div>
+              <div className="anz-field"><div className="anz-k">Diagnóstico detectado</div><div className="anz-v"><strong>{result.diagnostico}</strong></div></div>
+              <div className="anz-field"><div className="anz-k">Nivel de riesgo</div><div className="anz-v"><span className="anz-tag" style={{background:riskColor(result.riesgo)[0],color:riskColor(result.riesgo)[1]}}>{result.riesgo}</span></div></div>
+              <div className="anz-field"><div className="anz-k">Codificación SNOMED CT</div><div className="anz-v"><span className="snomed-code">{result.snomed.code}</span> · {result.snomed.t}<br/><span style={{color:'var(--text-3)',fontSize:12.5}}>{result.snomed.topo}</span></div></div>
+              <div className="anz-field"><div className="anz-k">Puntos clave / recomendaciones</div><div className="anz-v">{result.claves.map((c,i)=><div key={i} style={{display:'flex',gap:8,padding:'2px 0'}}><span style={{color:'var(--brand-500)'}}>→</span>{c}</div>)}</div></div>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ════════════════ EQUIPO ════════════════ */
+function Team() {
+  return (
+    <div>
+      <div className="page-head">
+        <div><h1>Equipo del laboratorio</h1><p>Patólogos especialistas procedentes de los principales hospitales de Catalunya</p></div>
+      </div>
+      <div className="team-grid">
+        {PATHOLOGISTS.map((p,i)=>{
+          const slug = p.name.toLowerCase().replace('dra. ','').replace('dr. ','').replace(/\s/g,'.').replace(/[àá]/g,'a').replace(/[èé]/g,'e').replace(/[íï]/g,'i').replace(/[òó]/g,'o').replace(/[úü]/g,'u');
+          return (
+            <div className="team-card" key={i}>
+              <div className="team-av" style={{background:p.color}}>{p.init}</div>
+              <div style={{flex:1}}>
+                <div className="team-name">{p.name}</div>
+                <div className="team-role">Anatomía Patológica · {p.spec}</div>
+                <div className="team-stats">
+                  <div className="team-stat"><div className="ts-num">{p.count}</div><div className="ts-lab">Casos hoy</div></div>
+                  <div className="team-stat"><div className="ts-num" style={{color:p.color}}>{SPECIALTIES[p.spec].short}</div><div className="ts-lab">Especialidad</div></div>
+                </div>
+                <div className="team-contact">✉ {slug}@bcnpatolegs.com</div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+      <div className="card" style={{marginTop:18}}>
+        <div className="card-head"><h3>Hospitales de referencia</h3></div>
+        <div style={{padding:'16px 18px',display:'flex',gap:10,flexWrap:'wrap'}}>
+          {['Vall d\'Hebron','Hospital Clínic','Hospital de Sant Pau','Hospital del Mar','Bellvitge'].map((h,i)=>(
+            <span key={i} className="chip" style={{padding:'7px 13px',fontSize:12.5}}>🏥 {h}</span>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ════════════════ CONFIGURACIÓN ════════════════ */
+function Settings({ apiKey, hasKey, onKeyClick, onShowGuide, onReset, showToast }) {
+  return (
+    <div>
+      <div className="page-head">
+        <div><h1>Configuración</h1><p>Ajustes del sistema, inteligencia artificial y datos de demostración</p></div>
+      </div>
+      <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:18,alignItems:'start'}}>
+        <div className="card">
+          <div className="card-head"><h3>Inteligencia artificial</h3></div>
+          <div className="set-row">
+            <div className="set-info">
+              <div className="set-title">Motor de IA</div>
+              <div className="set-desc">{hasKey ? 'Conectado a Groq · Llama 3.3 70B. Respuestas con IA completa.' : 'Modo demostración activo. Funciona sin clave; conecta Groq para respuestas libres.'}</div>
+            </div>
+            <span className="audit-tag" style={{background: hasKey?'var(--green-bg)':'var(--brand-50)', color: hasKey?'var(--green)':'var(--brand-700)'}}>{hasKey?'● Conectada':'● Demo'}</span>
+          </div>
+          <div className="set-row">
+            <div className="set-info"><div className="set-title">Clave de API</div><div className="set-desc">Gestiona la conexión con Groq. La clave se guarda solo en este navegador.</div></div>
+            <button className="btn btn-soft btn-sm" onClick={onKeyClick}>{hasKey?'Gestionar':'Activar IA'}</button>
+          </div>
+        </div>
+
+        <div className="card">
+          <div className="card-head"><h3>Datos del laboratorio</h3></div>
+          <div className="set-row"><div className="set-info"><div className="set-title">Centro</div><div className="set-desc">BCN Patòlegs · Laboratori d'Anatomia Patològica</div></div></div>
+          <div className="set-row"><div className="set-info"><div className="set-title">Dirección</div><div className="set-desc">Pg. de Josep Llovera, 9 · 08021 Barcelona</div></div></div>
+          <div className="set-row"><div className="set-info"><div className="set-title">Especialidades</div><div className="set-desc">Dermatopatología · Mamaria · Ginecológica · Digestiva</div></div></div>
+          <div className="set-row"><div className="set-info"><div className="set-title">Alojamiento de datos</div><div className="set-desc">On-premise · servidor del laboratorio (Barcelona)</div></div><span className="audit-tag" style={{background:'var(--green-bg)',color:'var(--green)'}}>✓ RGPD</span></div>
+        </div>
+
+        <div className="card">
+          <div className="card-head"><h3>Ayuda y demostración</h3></div>
+          <div className="set-row">
+            <div className="set-info"><div className="set-title">Guía de uso</div><div className="set-desc">Vuelve a ver el recorrido paso a paso por todas las funciones.</div></div>
+            <button className="btn btn-soft btn-sm" onClick={onShowGuide}>Ver guía</button>
+          </div>
+          <div className="set-row">
+            <div className="set-info"><div className="set-title">Restablecer datos de demostración</div><div className="set-desc">Devuelve las muestras de ejemplo a su estado original.</div></div>
+            <button className="btn btn-ghost btn-sm" onClick={onReset}>Restablecer</button>
+          </div>
+        </div>
+
+        <div className="card">
+          <div className="card-head"><h3>Acerca de</h3></div>
+          <div style={{padding:'18px',display:'flex',alignItems:'center',gap:14}}>
+            <div className="brand-mark" style={{width:48,height:48,fontSize:20}}>BP</div>
+            <div>
+              <div style={{fontWeight:800,fontSize:15}}>LabAI · v1.0</div>
+              <div style={{fontSize:12.5,color:'var(--text-2)'}}>Sistema de gestión de laboratorio con IA</div>
+              <div style={{fontSize:11.5,color:'var(--text-3)',marginTop:4}}>Demostración para BCN Patòlegs · La Costa Agency</div>
             </div>
           </div>
         </div>
