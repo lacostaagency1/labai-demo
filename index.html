@@ -1,0 +1,1881 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BCN Patòlegs · Sistema de Gestión de Laboratorio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Lora:ital,wght@0,500;0,600;1,400&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    /* Clinical light palette — BCN Patòlegs */
+    --brand:        #0e6b6b;   /* deep medical teal */
+    --brand-700:    #0a5252;
+    --brand-600:    #0e6b6b;
+    --brand-500:    #138a86;
+    --brand-50:     #e8f4f3;
+    --brand-100:    #d0e9e7;
+    --accent:       #c2410c;   /* clinical coral (urgents) */
+
+    --bg:           #f4f6f9;
+    --surface:      #ffffff;
+    --surface-2:    #fafbfc;
+    --border:       #e3e8ee;
+    --border-2:     #d4dbe4;
+
+    --text:         #14202e;
+    --text-2:       #5a6b7e;
+    --text-3:       #8a98a8;
+
+    --green:        #0f7a4f;
+    --green-bg:     #e4f4ec;
+    --amber:        #b45309;
+    --amber-bg:     #fdf2e0;
+    --red:          #c0392b;
+    --red-bg:       #fbe9e7;
+    --blue:         #1d4ed8;
+    --blue-bg:      #e8eefc;
+    --purple:       #7c3aed;
+    --purple-bg:    #f0e9fc;
+    --pink:         #be185d;
+    --pink-bg:      #fce8f1;
+
+    --shadow-sm:    0 1px 2px rgba(20,32,46,0.04), 0 1px 3px rgba(20,32,46,0.06);
+    --shadow-md:    0 2px 4px rgba(20,32,46,0.04), 0 4px 12px rgba(20,32,46,0.08);
+    --shadow-lg:    0 8px 24px rgba(20,32,46,0.12), 0 2px 6px rgba(20,32,46,0.06);
+    --radius:       10px;
+  }
+  body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    height: 100vh;
+    overflow: hidden;
+    -webkit-font-smoothing: antialiased;
+    font-size: 14px;
+  }
+  #root { height: 100vh; }
+
+  ::-webkit-scrollbar { width: 8px; height: 8px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: #c9d3de; border-radius: 99px; border: 2px solid var(--bg); }
+  ::-webkit-scrollbar-thumb:hover { background: #aab8c6; }
+
+  button { font-family: inherit; cursor: pointer; }
+  input, select, textarea { font-family: inherit; }
+
+  /* ── App shell ───────────────────────────────────────── */
+  .app { display: flex; height: 100vh; }
+
+  /* ── Sidebar ─────────────────────────────────────────── */
+  .sidebar {
+    width: 240px; min-width: 240px;
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    display: flex; flex-direction: column;
+  }
+  .brand {
+    padding: 18px 18px 16px;
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; gap: 11px;
+  }
+  .brand-mark {
+    width: 38px; height: 38px; border-radius: 10px; flex-shrink: 0;
+    background: linear-gradient(135deg, var(--brand-600), var(--brand-500));
+    display: flex; align-items: center; justify-content: center;
+    color: #fff; font-weight: 800; font-size: 17px;
+    box-shadow: 0 2px 8px rgba(14,107,107,0.3);
+    letter-spacing: -0.5px;
+  }
+  .brand-text { line-height: 1.2; }
+  .brand-name { font-size: 15px; font-weight: 800; letter-spacing: -0.3px; color: var(--text); }
+  .brand-sub { font-size: 10.5px; color: var(--text-3); font-weight: 500; letter-spacing: 0.2px; }
+
+  .nav { flex: 1; overflow-y: auto; padding: 14px 12px; }
+  .nav-group { margin-bottom: 22px; }
+  .nav-label {
+    font-size: 10px; font-weight: 700; letter-spacing: 1.2px;
+    text-transform: uppercase; color: var(--text-3);
+    padding: 0 10px; margin-bottom: 7px;
+  }
+  .nav-item {
+    display: flex; align-items: center; gap: 11px;
+    padding: 9px 11px; border-radius: 8px; margin-bottom: 2px;
+    font-size: 13.5px; font-weight: 500; color: var(--text-2);
+    transition: all 0.13s; border: none; background: transparent;
+    width: 100%; text-align: left;
+  }
+  .nav-item:hover { background: var(--surface-2); color: var(--text); }
+  .nav-item.active {
+    background: var(--brand-50); color: var(--brand-700); font-weight: 600;
+  }
+  .nav-item.active .nav-ico { opacity: 1; }
+  .nav-ico { width: 18px; height: 18px; flex-shrink: 0; opacity: 0.7; display:flex; align-items:center; justify-content:center; }
+  .nav-badge {
+    margin-left: auto; font-size: 10.5px; font-weight: 700;
+    padding: 1px 7px; border-radius: 99px;
+    background: var(--red-bg); color: var(--red);
+  }
+  .nav-badge.amber { background: var(--amber-bg); color: var(--amber); }
+
+  .sidebar-footer {
+    padding: 12px 14px; border-top: 1px solid var(--border);
+  }
+  .lab-card {
+    background: var(--surface-2); border: 1px solid var(--border);
+    border-radius: 9px; padding: 11px 12px;
+  }
+  .lab-card-title { font-size: 11px; font-weight: 700; color: var(--text); }
+  .lab-card-addr { font-size: 10.5px; color: var(--text-3); line-height: 1.45; margin-top: 3px; }
+
+  /* ── Main ────────────────────────────────────────────── */
+  .main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+
+  .topbar {
+    height: 58px; min-height: 58px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; gap: 16px;
+    padding: 0 24px;
+  }
+  .breadcrumb { display: flex; align-items: center; gap: 8px; font-size: 13px; }
+  .breadcrumb .crumb-main { font-weight: 700; font-size: 15.5px; letter-spacing: -0.3px; }
+  .breadcrumb .crumb-sep { color: var(--text-3); }
+  .breadcrumb .crumb-sub { color: var(--text-2); }
+
+  .topbar-search {
+    margin-left: 8px; flex: 1; max-width: 380px; position: relative;
+  }
+  .topbar-search input {
+    width: 100%; height: 36px; border: 1px solid var(--border-2);
+    border-radius: 8px; padding: 0 12px 0 34px; font-size: 13px;
+    background: var(--surface-2); color: var(--text); outline: none;
+    transition: all 0.15s;
+  }
+  .topbar-search input:focus { border-color: var(--brand-500); background: #fff; box-shadow: 0 0 0 3px var(--brand-50); }
+  .topbar-search .search-ico {
+    position: absolute; left: 11px; top: 50%; transform: translateY(-50%);
+    color: var(--text-3); pointer-events: none;
+  }
+
+  .topbar-right { margin-left: auto; display: flex; align-items: center; gap: 12px; }
+  .ai-pill {
+    display: flex; align-items: center; gap: 7px;
+    height: 34px; padding: 0 13px; border-radius: 8px;
+    font-size: 12.5px; font-weight: 600; border: 1px solid var(--border-2);
+    background: var(--surface-2); color: var(--text-2); transition: all 0.15s;
+  }
+  .ai-pill:hover { border-color: var(--brand-500); color: var(--brand-700); }
+  .ai-pill.on { background: var(--green-bg); border-color: #b6e0cb; color: var(--green); }
+  .ai-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--amber); flex-shrink: 0; }
+  .ai-pill.on .ai-dot { background: var(--green); box-shadow: 0 0 0 3px rgba(15,122,79,0.18); }
+  .icon-btn {
+    width: 34px; height: 34px; border-radius: 8px; border: 1px solid var(--border-2);
+    background: var(--surface-2); color: var(--text-2); display: flex;
+    align-items: center; justify-content: center; transition: all 0.15s; position: relative;
+  }
+  .icon-btn:hover { color: var(--text); border-color: var(--border-2); background: #fff; }
+  .icon-btn .dot-alert { position: absolute; top: 7px; right: 8px; width: 7px; height: 7px; border-radius: 50%; background: var(--red); border: 1.5px solid #fff; }
+  .user-chip {
+    display: flex; align-items: center; gap: 9px; padding-left: 6px;
+  }
+  .user-av {
+    width: 34px; height: 34px; border-radius: 50%;
+    background: linear-gradient(135deg, var(--brand-600), var(--brand-500));
+    color: #fff; font-weight: 700; font-size: 12.5px;
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  }
+  .user-meta { line-height: 1.25; }
+  .user-name { font-size: 12.5px; font-weight: 600; }
+  .user-role { font-size: 10.5px; color: var(--text-3); }
+
+  /* ── Content ─────────────────────────────────────────── */
+  .content { flex: 1; overflow-y: auto; padding: 24px; }
+  .content-narrow { max-width: 1320px; margin: 0 auto; }
+
+  .page-head { display: flex; align-items: flex-end; gap: 16px; margin-bottom: 20px; }
+  .page-head h1 { font-size: 21px; font-weight: 800; letter-spacing: -0.5px; }
+  .page-head p { font-size: 13px; color: var(--text-2); margin-top: 3px; }
+  .page-head-actions { margin-left: auto; display: flex; gap: 9px; }
+
+  /* Buttons */
+  .btn {
+    display: inline-flex; align-items: center; gap: 7px; justify-content: center;
+    height: 36px; padding: 0 15px; border-radius: 8px; font-size: 13px;
+    font-weight: 600; border: 1px solid transparent; transition: all 0.14s; white-space: nowrap;
+  }
+  .btn-primary { background: var(--brand-600); color: #fff; box-shadow: var(--shadow-sm); }
+  .btn-primary:hover { background: var(--brand-700); }
+  .btn-primary:disabled { opacity: 0.55; cursor: not-allowed; }
+  .btn-ghost { background: var(--surface); border-color: var(--border-2); color: var(--text-2); }
+  .btn-ghost:hover { color: var(--text); border-color: var(--text-3); background: #fff; }
+  .btn-soft { background: var(--brand-50); color: var(--brand-700); }
+  .btn-soft:hover { background: var(--brand-100); }
+  .btn-sm { height: 30px; padding: 0 11px; font-size: 12px; border-radius: 7px; }
+
+  /* Stat cards */
+  .stat-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 22px; }
+  .stat {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 16px 18px; box-shadow: var(--shadow-sm);
+  }
+  .stat-top { display: flex; align-items: center; justify-content: space-between; }
+  .stat-ico {
+    width: 34px; height: 34px; border-radius: 9px; display: flex;
+    align-items: center; justify-content: center; font-size: 16px;
+  }
+  .stat-trend { font-size: 11.5px; font-weight: 700; padding: 2px 8px; border-radius: 6px; }
+  .trend-up { background: var(--green-bg); color: var(--green); }
+  .trend-flat { background: var(--surface-2); color: var(--text-3); }
+  .trend-down { background: var(--red-bg); color: var(--red); }
+  .stat-num { font-size: 28px; font-weight: 800; letter-spacing: -1px; margin-top: 12px; line-height: 1; }
+  .stat-label { font-size: 12px; color: var(--text-2); margin-top: 5px; font-weight: 500; }
+
+  /* Panel / card */
+  .card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); box-shadow: var(--shadow-sm); overflow: hidden;
+  }
+  .card-head {
+    padding: 14px 18px; border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; gap: 10px;
+  }
+  .card-head h3 { font-size: 14px; font-weight: 700; }
+  .card-head .card-actions { margin-left: auto; display: flex; gap: 8px; align-items: center; }
+
+  /* View toggle */
+  .seg { display: inline-flex; background: var(--surface-2); border: 1px solid var(--border-2); border-radius: 8px; padding: 2px; }
+  .seg button {
+    height: 28px; padding: 0 12px; border: none; background: transparent;
+    font-size: 12px; font-weight: 600; color: var(--text-2); border-radius: 6px; transition: all 0.13s;
+  }
+  .seg button.on { background: #fff; color: var(--brand-700); box-shadow: var(--shadow-sm); }
+
+  /* Kanban */
+  .kanban { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
+  .kcol { background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius); display: flex; flex-direction: column; }
+  .kcol-head {
+    padding: 12px 14px; display: flex; align-items: center; gap: 8px;
+    border-bottom: 1px solid var(--border);
+  }
+  .kcol-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+  .kcol-title { font-size: 12px; font-weight: 700; letter-spacing: 0.2px; }
+  .kcol-count { margin-left: auto; font-size: 11px; font-weight: 700; color: var(--text-3); background: var(--surface); border: 1px solid var(--border-2); padding: 1px 8px; border-radius: 99px; }
+  .kcol-body { padding: 10px; display: flex; flex-direction: column; gap: 9px; flex: 1; min-height: 120px; }
+
+  .scard {
+    background: var(--surface); border: 1px solid var(--border-2); border-radius: 9px;
+    padding: 12px 13px; transition: all 0.14s; cursor: pointer; box-shadow: var(--shadow-sm);
+  }
+  .scard:hover { border-color: var(--brand-500); box-shadow: var(--shadow-md); transform: translateY(-1px); }
+  .scard-top { display: flex; align-items: center; gap: 6px; }
+  .scard-id { font-size: 10.5px; font-weight: 700; color: var(--text-3); letter-spacing: 0.5px; font-family: 'Inter'; }
+  .scard-urgent { margin-left: auto; font-size: 9px; font-weight: 800; letter-spacing: 0.5px; background: var(--red-bg); color: var(--red); padding: 2px 6px; border-radius: 5px; }
+  .scard-name { font-size: 13.5px; font-weight: 700; margin: 6px 0 3px; letter-spacing: -0.2px; }
+  .scard-patient { font-size: 12px; color: var(--text-2); display: flex; align-items: center; gap: 5px; }
+  .scard-foot { display: flex; align-items: center; gap: 6px; margin-top: 9px; flex-wrap: wrap; }
+  .spec-pill { font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 5px; }
+  .scard-date { font-size: 10.5px; color: var(--text-3); margin-left: auto; }
+
+  /* Table */
+  .tbl-wrap { overflow-x: auto; }
+  table.tbl { width: 100%; border-collapse: collapse; }
+  .tbl thead th {
+    text-align: left; font-size: 11px; font-weight: 700; color: var(--text-3);
+    text-transform: uppercase; letter-spacing: 0.6px; padding: 11px 16px;
+    border-bottom: 1px solid var(--border); background: var(--surface-2); white-space: nowrap;
+  }
+  .tbl tbody td { padding: 13px 16px; border-bottom: 1px solid var(--border); font-size: 13px; vertical-align: middle; }
+  .tbl tbody tr { transition: background 0.12s; cursor: pointer; }
+  .tbl tbody tr:hover { background: var(--brand-50); }
+  .tbl tbody tr:last-child td { border-bottom: none; }
+  .mono { font-family: 'Inter'; font-weight: 600; font-size: 12px; letter-spacing: 0.3px; }
+  .status-pill {
+    display: inline-flex; align-items: center; gap: 6px; font-size: 11.5px;
+    font-weight: 600; padding: 4px 10px; border-radius: 99px; white-space: nowrap;
+  }
+  .status-pill .sp-dot { width: 6px; height: 6px; border-radius: 50%; }
+
+  /* Drawer */
+  .drawer-overlay {
+    position: fixed; inset: 0; background: rgba(20,32,46,0.35);
+    backdrop-filter: blur(2px); z-index: 9000; display: flex; justify-content: flex-end;
+    animation: fadeIn 0.18s;
+  }
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+  .drawer {
+    width: 540px; max-width: 92vw; background: var(--surface); height: 100%;
+    display: flex; flex-direction: column; box-shadow: var(--shadow-lg);
+    animation: slideIn 0.22s cubic-bezier(0.16,1,0.3,1);
+  }
+  @keyframes slideIn { from { transform: translateX(40px); opacity: 0.5; } to { transform: translateX(0); opacity: 1; } }
+  .drawer-head { padding: 18px 22px; border-bottom: 1px solid var(--border); display: flex; align-items: flex-start; gap: 12px; }
+  .drawer-head h2 { font-size: 17px; font-weight: 800; letter-spacing: -0.3px; }
+  .drawer-head .dh-id { font-size: 11.5px; color: var(--text-3); font-weight: 600; letter-spacing: 0.5px; margin-bottom: 3px; }
+  .drawer-close { margin-left: auto; width: 32px; height: 32px; border-radius: 8px; border: 1px solid var(--border-2); background: var(--surface-2); color: var(--text-2); display: flex; align-items: center; justify-content: center; font-size: 17px; }
+  .drawer-close:hover { background: #fff; color: var(--text); }
+  .drawer-body { flex: 1; overflow-y: auto; padding: 22px; }
+  .drawer-foot { padding: 14px 22px; border-top: 1px solid var(--border); display: flex; gap: 9px; }
+
+  .detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px 22px; margin-bottom: 22px; }
+  .detail-item .di-label { font-size: 10.5px; font-weight: 700; color: var(--text-3); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 3px; }
+  .detail-item .di-val { font-size: 13.5px; font-weight: 600; }
+
+  .section-title { font-size: 12px; font-weight: 700; color: var(--text-2); text-transform: uppercase; letter-spacing: 0.6px; margin: 22px 0 12px; display: flex; align-items: center; gap: 8px; }
+  .section-title::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+
+  /* Timeline */
+  .timeline { position: relative; padding-left: 26px; }
+  .timeline::before { content: ''; position: absolute; left: 8px; top: 6px; bottom: 6px; width: 2px; background: var(--border); }
+  .tl-item { position: relative; padding-bottom: 18px; }
+  .tl-item:last-child { padding-bottom: 0; }
+  .tl-dot { position: absolute; left: -22px; top: 2px; width: 14px; height: 14px; border-radius: 50%; border: 2.5px solid var(--surface); box-shadow: 0 0 0 1.5px var(--border-2); background: var(--text-3); }
+  .tl-dot.done { background: var(--green); box-shadow: 0 0 0 1.5px var(--green); }
+  .tl-dot.active { background: var(--brand-500); box-shadow: 0 0 0 1.5px var(--brand-500); animation: pulse 1.8s infinite; }
+  @keyframes pulse { 0%,100% { box-shadow: 0 0 0 1.5px var(--brand-500); } 50% { box-shadow: 0 0 0 4px var(--brand-100); } }
+  .tl-title { font-size: 13px; font-weight: 600; }
+  .tl-meta { font-size: 11.5px; color: var(--text-3); margin-top: 2px; }
+
+  /* Block/slide chips */
+  .chip-row { display: flex; flex-wrap: wrap; gap: 8px; }
+  .obj-chip {
+    display: flex; align-items: center; gap: 7px; padding: 7px 11px;
+    background: var(--surface-2); border: 1px solid var(--border-2); border-radius: 8px; font-size: 12px;
+  }
+  .obj-chip .oc-ico { font-size: 14px; }
+  .obj-chip .oc-id { font-weight: 700; }
+  .obj-chip .oc-meta { color: var(--text-3); }
+
+  .snomed-box { background: var(--brand-50); border: 1px solid var(--brand-100); border-radius: 9px; padding: 12px 14px; }
+  .snomed-code { font-family: 'Inter'; font-weight: 700; color: var(--brand-700); font-size: 13px; }
+  .snomed-desc { font-size: 12.5px; color: var(--text-2); margin-top: 3px; }
+
+  /* ── Chat ────────────────────────────────────────────── */
+  .chat-wrap { display: flex; height: 100%; gap: 0; }
+  .chat-docs {
+    width: 270px; min-width: 270px; background: var(--surface);
+    border-right: 1px solid var(--border); display: flex; flex-direction: column;
+  }
+  .chat-docs-head { padding: 15px 16px; border-bottom: 1px solid var(--border); }
+  .chat-docs-head h3 { font-size: 13.5px; font-weight: 700; }
+  .chat-docs-head p { font-size: 11.5px; color: var(--text-3); margin-top: 2px; }
+  .doc-list { flex: 1; overflow-y: auto; padding: 10px; }
+  .doc-item {
+    padding: 11px 12px; border-radius: 9px; border: 1px solid transparent;
+    transition: all 0.13s; margin-bottom: 5px; width: 100%; text-align: left; background: transparent;
+  }
+  .doc-item:hover { background: var(--surface-2); }
+  .doc-item.active { background: var(--brand-50); border-color: var(--brand-100); }
+  .doc-item-top { display: flex; align-items: center; gap: 8px; }
+  .doc-item-name { font-size: 12.5px; font-weight: 600; color: var(--text); }
+  .doc-item-meta { font-size: 11px; color: var(--text-3); margin-top: 3px; padding-left: 22px; }
+  .doc-upload { padding: 10px; border-top: 1px solid var(--border); }
+
+  .chat-panel { flex: 1; display: flex; flex-direction: column; background: var(--bg); overflow: hidden; }
+  .chat-ctx {
+    padding: 11px 20px; background: var(--surface); border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; gap: 9px; font-size: 12px; color: var(--text-2);
+  }
+  .ctx-tag { background: var(--brand-50); color: var(--brand-700); font-weight: 600; padding: 3px 10px; border-radius: 99px; font-size: 11.5px; display: flex; align-items: center; gap: 5px; }
+  .chat-msgs { flex: 1; overflow-y: auto; padding: 22px 24px; display: flex; flex-direction: column; gap: 18px; }
+  .msg { display: flex; gap: 11px; max-width: 760px; }
+  .msg.user { align-self: flex-end; flex-direction: row-reverse; }
+  .msg-av {
+    width: 32px; height: 32px; border-radius: 9px; flex-shrink: 0; display: flex;
+    align-items: center; justify-content: center; font-size: 14px; align-self: flex-start;
+  }
+  .msg.ai .msg-av { background: linear-gradient(135deg, var(--brand-600), var(--brand-500)); color: #fff; }
+  .msg.user .msg-av { background: var(--text); color: #fff; font-size: 11px; font-weight: 700; }
+  .msg-body { display: flex; flex-direction: column; }
+  .msg-bubble {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
+    padding: 13px 16px; font-size: 13.5px; line-height: 1.62; box-shadow: var(--shadow-sm);
+  }
+  .msg.user .msg-bubble { background: var(--brand-600); border-color: var(--brand-600); color: #fff; }
+  .msg-bubble strong { font-weight: 700; }
+  .msg-bubble code { background: var(--brand-50); color: var(--brand-700); padding: 1px 5px; border-radius: 4px; font-size: 12px; font-weight: 600; }
+  .msg.user .msg-bubble code { background: rgba(255,255,255,0.2); color: #fff; }
+  .msg-sources { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 9px; }
+  .src-chip {
+    font-size: 11px; background: var(--surface); border: 1px solid var(--border-2);
+    padding: 3px 9px; border-radius: 6px; color: var(--text-2); font-weight: 500;
+    display: flex; align-items: center; gap: 5px; transition: all 0.13s;
+  }
+  .src-chip:hover { border-color: var(--brand-500); color: var(--brand-700); }
+  .src-page { background: var(--brand-50); color: var(--brand-700); font-weight: 700; padding: 0 5px; border-radius: 4px; font-size: 10px; }
+
+  .typing { display: flex; gap: 5px; align-items: center; }
+  .typing span { width: 7px; height: 7px; border-radius: 50%; background: var(--brand-500); animation: tb 1.2s infinite ease-in-out; }
+  .typing span:nth-child(2) { animation-delay: 0.18s; }
+  .typing span:nth-child(3) { animation-delay: 0.36s; }
+  @keyframes tb { 0%,80%,100% { transform: scale(0.5); opacity: 0.4; } 40% { transform: scale(1); opacity: 1; } }
+
+  .chat-input-wrap { padding: 14px 20px 18px; background: var(--surface); border-top: 1px solid var(--border); }
+  .suggest-row { display: flex; gap: 7px; flex-wrap: wrap; margin-bottom: 11px; }
+  .suggest-chip {
+    font-size: 12px; background: var(--surface-2); border: 1px solid var(--border-2);
+    padding: 6px 12px; border-radius: 8px; color: var(--text-2); font-weight: 500; transition: all 0.13s;
+  }
+  .suggest-chip:hover { border-color: var(--brand-500); color: var(--brand-700); background: #fff; }
+  .input-box { display: flex; gap: 10px; align-items: flex-end; }
+  .input-box textarea {
+    flex: 1; border: 1px solid var(--border-2); border-radius: 11px; padding: 11px 14px;
+    font-size: 13.5px; color: var(--text); resize: none; outline: none; line-height: 1.5;
+    background: var(--surface-2); transition: all 0.15s; max-height: 140px;
+  }
+  .input-box textarea:focus { border-color: var(--brand-500); background: #fff; box-shadow: 0 0 0 3px var(--brand-50); }
+  .send-btn {
+    width: 42px; height: 42px; border-radius: 11px; border: none; flex-shrink: 0;
+    background: var(--brand-600); color: #fff; font-size: 17px; display: flex;
+    align-items: center; justify-content: center; transition: all 0.14s;
+  }
+  .send-btn:hover:not(:disabled) { background: var(--brand-700); transform: translateY(-1px); }
+  .send-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  /* ── Reports ─────────────────────────────────────────── */
+  .report-cols { display: grid; grid-template-columns: 420px 1fr; gap: 20px; height: 100%; }
+  .report-form-body { padding: 18px; overflow-y: auto; }
+  .field { margin-bottom: 15px; }
+  .field-label { font-size: 11.5px; font-weight: 700; color: var(--text-2); margin-bottom: 6px; display: block; letter-spacing: 0.2px; }
+  .field-input {
+    width: 100%; border: 1px solid var(--border-2); border-radius: 8px; padding: 9px 12px;
+    font-size: 13px; color: var(--text); outline: none; background: var(--surface-2); transition: all 0.15s;
+  }
+  .field-input:focus { border-color: var(--brand-500); background: #fff; box-shadow: 0 0 0 3px var(--brand-50); }
+  textarea.field-input { resize: vertical; min-height: 96px; line-height: 1.55; font-family: inherit; }
+  select.field-input { cursor: pointer; appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%238a98a8' stroke-width='2.5'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 12px center; padding-right: 32px; }
+
+  .report-doc { background: var(--surface); height: 100%; display: flex; flex-direction: column; }
+  .report-paper {
+    flex: 1; overflow-y: auto; padding: 36px 44px; background: #fff;
+  }
+  .rp-letterhead { display: flex; align-items: flex-start; justify-content: space-between; border-bottom: 2.5px solid var(--brand-600); padding-bottom: 16px; margin-bottom: 22px; }
+  .rp-lab { display: flex; align-items: center; gap: 12px; }
+  .rp-lab-mark { width: 44px; height: 44px; border-radius: 10px; background: linear-gradient(135deg, var(--brand-600), var(--brand-500)); display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 800; font-size: 19px; }
+  .rp-lab-name { font-size: 17px; font-weight: 800; letter-spacing: -0.4px; }
+  .rp-lab-sub { font-size: 11px; color: var(--text-2); }
+  .rp-ref { text-align: right; font-size: 11px; color: var(--text-2); line-height: 1.6; }
+  .rp-ref strong { color: var(--text); }
+  .rp-content { font-family: 'Lora', Georgia, serif; font-size: 13.5px; line-height: 1.85; color: #1d2a38; white-space: pre-wrap; }
+  .rp-content h4 { font-family: 'Inter'; font-size: 11.5px; font-weight: 800; letter-spacing: 0.8px; text-transform: uppercase; color: var(--brand-700); margin: 20px 0 7px; }
+  .rp-content strong { font-weight: 700; color: #14202e; }
+  .rp-placeholder { color: var(--text-3); font-style: italic; text-align: center; padding: 60px 20px; font-family: 'Inter'; }
+  .rp-sign { margin-top: 40px; padding-top: 16px; border-top: 1px solid var(--border); display: flex; justify-content: space-between; font-family: 'Inter'; font-size: 11.5px; color: var(--text-2); }
+
+  /* ── Quality ─────────────────────────────────────────── */
+  .quality-grid { display: grid; grid-template-columns: 1.4fr 1fr; gap: 18px; }
+  .audit-item {
+    display: flex; align-items: center; gap: 13px; padding: 13px 16px;
+    border-bottom: 1px solid var(--border);
+  }
+  .audit-item:last-child { border-bottom: none; }
+  .audit-ico { width: 36px; height: 36px; border-radius: 9px; display: flex; align-items: center; justify-content: center; font-size: 15px; flex-shrink: 0; }
+  .audit-main { flex: 1; min-width: 0; }
+  .audit-desc { font-size: 13px; font-weight: 600; }
+  .audit-sub { font-size: 11.5px; color: var(--text-3); margin-top: 2px; }
+  .audit-tag { font-size: 10.5px; font-weight: 700; padding: 3px 9px; border-radius: 6px; white-space: nowrap; }
+  .audit-time { font-size: 11px; color: var(--text-3); white-space: nowrap; min-width: 78px; text-align: right; }
+
+  .iso-row { margin-bottom: 15px; }
+  .iso-top { display: flex; justify-content: space-between; font-size: 12.5px; margin-bottom: 6px; }
+  .iso-top .iso-name { color: var(--text-2); font-weight: 500; }
+  .iso-top .iso-pct { font-weight: 700; }
+  .iso-bar { height: 6px; background: var(--surface-2); border: 1px solid var(--border); border-radius: 99px; overflow: hidden; }
+  .iso-fill { height: 100%; border-radius: 99px; transition: width 1s cubic-bezier(0.16,1,0.3,1); }
+
+  /* ── Dashboard ───────────────────────────────────────── */
+  .dash-grid { display: grid; grid-template-columns: 1.5fr 1fr; gap: 18px; margin-bottom: 18px; }
+  .workload-row { display: flex; align-items: center; gap: 12px; padding: 11px 0; border-bottom: 1px solid var(--border); }
+  .workload-row:last-child { border-bottom: none; }
+  .wl-av { width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 12px; color: #fff; flex-shrink: 0; }
+  .wl-name { font-size: 13px; font-weight: 600; }
+  .wl-spec { font-size: 11.5px; color: var(--text-3); }
+  .wl-bar-wrap { flex: 1; max-width: 160px; }
+  .wl-bar { height: 6px; background: var(--surface-2); border-radius: 99px; overflow: hidden; border: 1px solid var(--border); }
+  .wl-count { font-size: 12.5px; font-weight: 700; min-width: 56px; text-align: right; }
+
+  .donut-wrap { display: flex; align-items: center; gap: 22px; padding: 8px 0; }
+  .donut { width: 130px; height: 130px; flex-shrink: 0; }
+  .legend-item { display: flex; align-items: center; gap: 9px; margin-bottom: 10px; }
+  .legend-dot { width: 10px; height: 10px; border-radius: 3px; flex-shrink: 0; }
+  .legend-label { font-size: 12.5px; flex: 1; }
+  .legend-val { font-size: 12.5px; font-weight: 700; }
+
+  /* ── Modal ───────────────────────────────────────────── */
+  .modal-overlay { position: fixed; inset: 0; background: rgba(20,32,46,0.45); backdrop-filter: blur(3px); display: flex; align-items: center; justify-content: center; z-index: 9500; animation: fadeIn 0.16s; }
+  .modal { background: var(--surface); border-radius: 14px; box-shadow: var(--shadow-lg); width: 460px; max-width: 92vw; animation: modalIn 0.2s cubic-bezier(0.16,1,0.3,1); }
+  @keyframes modalIn { from { transform: scale(0.96) translateY(10px); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+  .modal-head { padding: 20px 22px 0; }
+  .modal-head h3 { font-size: 17px; font-weight: 800; letter-spacing: -0.3px; display: flex; align-items: center; gap: 9px; }
+  .modal-head p { font-size: 13px; color: var(--text-2); margin-top: 7px; line-height: 1.55; }
+  .modal-body { padding: 18px 22px; }
+  .modal-foot { padding: 0 22px 20px; display: flex; gap: 9px; justify-content: flex-end; }
+  .modal-input { width: 100%; border: 1px solid var(--border-2); border-radius: 8px; padding: 10px 13px; font-size: 13px; font-family: 'Inter'; outline: none; transition: all 0.15s; }
+  .modal-input:focus { border-color: var(--brand-500); box-shadow: 0 0 0 3px var(--brand-50); }
+  .modal-hint { font-size: 11.5px; color: var(--text-3); margin-top: 8px; line-height: 1.5; }
+
+  .new-sample-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .new-sample-grid .full { grid-column: 1 / -1; }
+
+  .spinner { display: inline-block; width: 15px; height: 15px; border: 2px solid rgba(255,255,255,0.3); border-top-color: #fff; border-radius: 50%; animation: spin 0.7s linear infinite; }
+  .spinner.dark { border-color: var(--brand-100); border-top-color: var(--brand-600); }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .empty { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 50px 20px; text-align: center; color: var(--text-3); }
+  .empty-ico { font-size: 34px; margin-bottom: 12px; opacity: 0.5; }
+  .empty h3 { font-size: 15px; font-weight: 700; color: var(--text-2); margin-bottom: 5px; }
+  .empty p { font-size: 12.5px; max-width: 280px; line-height: 1.5; }
+
+  /* ── Onboarding / Guía ───────────────────────────────── */
+  .ob-overlay { position: fixed; inset: 0; background: rgba(12,22,34,0.55); backdrop-filter: blur(5px); display: flex; align-items: center; justify-content: center; z-index: 10000; animation: fadeIn 0.2s; padding: 20px; }
+  .ob-card { background: var(--surface); border-radius: 18px; box-shadow: var(--shadow-lg); width: 560px; max-width: 96vw; overflow: hidden; animation: modalIn 0.24s cubic-bezier(0.16,1,0.3,1); display: flex; flex-direction: column; max-height: 92vh; }
+  .ob-hero { padding: 30px 32px 24px; background: linear-gradient(135deg, var(--brand-700), var(--brand-500)); color: #fff; position: relative; overflow: hidden; }
+  .ob-hero::after { content: ''; position: absolute; right: -40px; top: -40px; width: 180px; height: 180px; border-radius: 50%; background: rgba(255,255,255,0.08); }
+  .ob-step-ico { width: 56px; height: 56px; border-radius: 15px; background: rgba(255,255,255,0.18); display: flex; align-items: center; justify-content: center; font-size: 28px; margin-bottom: 16px; position: relative; z-index: 1; }
+  .ob-kicker { font-size: 11px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; opacity: 0.85; position: relative; z-index: 1; }
+  .ob-title { font-size: 23px; font-weight: 800; letter-spacing: -0.5px; margin-top: 5px; position: relative; z-index: 1; }
+  .ob-body { padding: 24px 32px; overflow-y: auto; }
+  .ob-lead { font-size: 14.5px; line-height: 1.65; color: var(--text-2); margin-bottom: 18px; }
+  .ob-lead strong { color: var(--text); font-weight: 700; }
+  .ob-steps { display: flex; flex-direction: column; gap: 13px; }
+  .ob-li { display: flex; gap: 13px; align-items: flex-start; }
+  .ob-num { width: 26px; height: 26px; border-radius: 8px; background: var(--brand-50); color: var(--brand-700); font-weight: 800; font-size: 13px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .ob-li-text { font-size: 13.5px; line-height: 1.55; color: var(--text-2); padding-top: 2px; }
+  .ob-li-text strong { color: var(--text); font-weight: 700; }
+  .ob-tip { margin-top: 18px; background: var(--brand-50); border: 1px solid var(--brand-100); border-radius: 10px; padding: 12px 14px; font-size: 12.5px; color: var(--brand-700); line-height: 1.55; display: flex; gap: 9px; }
+  .ob-foot { padding: 16px 32px 22px; border-top: 1px solid var(--border); display: flex; align-items: center; gap: 12px; }
+  .ob-dots { display: flex; gap: 7px; }
+  .ob-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--border-2); transition: all 0.2s; }
+  .ob-dot.on { background: var(--brand-500); width: 22px; border-radius: 5px; }
+  .ob-foot-btns { margin-left: auto; display: flex; gap: 9px; }
+  .ob-skip { background: transparent; border: none; color: var(--text-3); font-size: 12.5px; font-weight: 600; padding: 8px; }
+  .ob-skip:hover { color: var(--text-2); }
+
+  .toast-wrap { position: fixed; bottom: 22px; left: 50%; transform: translateX(-50%); z-index: 400; }
+  .toast { background: var(--text); color: #fff; padding: 11px 18px; border-radius: 10px; font-size: 13px; font-weight: 600; box-shadow: var(--shadow-lg); display: flex; align-items: center; gap: 9px; animation: toastIn 0.25s; }
+  @keyframes toastIn { from { transform: translateY(16px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel">
+const { useState, useEffect, useRef, useMemo, useCallback } = React;
+
+/* ════════════════ ICONS ════════════════ */
+const Ico = ({ d, size=18, sw=1.9 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={sw} strokeLinecap="round" strokeLinejoin="round">{d}</svg>
+);
+const Portal = ({ children }) => ReactDOM.createPortal(children, document.body);
+const I = {
+  dash:     <Ico d={<><rect x="3" y="3" width="7" height="9"/><rect x="14" y="3" width="7" height="5"/><rect x="14" y="12" width="7" height="9"/><rect x="3" y="16" width="7" height="5"/></>}/>,
+  sample:   <Ico d={<><path d="M9 3h6M10 3v6.5L5.5 17a2 2 0 001.8 3h9.4a2 2 0 001.8-3L14 9.5V3"/><path d="M7.5 14h9"/></>}/>,
+  ai:       <Ico d={<><path d="M12 2a4 4 0 014 4v1a3 3 0 013 3 3 3 0 01-1 5.6V18a4 4 0 01-8 0M12 2a4 4 0 00-4 4v1a3 3 0 00-3 3 3 3 0 001 5.6V18a4 4 0 008 0"/><circle cx="9" cy="9" r=".5" fill="currentColor"/><circle cx="15" cy="9" r=".5" fill="currentColor"/></>}/>,
+  report:   <Ico d={<><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6M9 13h6M9 17h6M9 9h1"/></>}/>,
+  quality:  <Ico d={<><path d="M9 12l2 2 4-4"/><path d="M21 12c0 5-3.5 7.5-8.5 9C7.5 19.5 4 17 4 12V6l8-3 8 3z"/></>}/>,
+  analyze:  <Ico d={<><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/><path d="M11 8v6M8 11h6"/></>}/>,
+  team:     <Ico d={<><circle cx="9" cy="7" r="3"/><path d="M3 20a6 6 0 0112 0M16 3.5a3 3 0 010 7M21 20a6 6 0 00-4-5.6"/></>}/>,
+  archive:  <Ico d={<><rect x="3" y="4" width="18" height="4" rx="1"/><path d="M5 8v11a1 1 0 001 1h12a1 1 0 001-1V8M10 12h4"/></>}/>,
+  settings: <Ico d={<><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></>}/>,
+  search:   <Ico d={<><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></>} size={15} sw={2}/>,
+  bell:     <Ico d={<><path d="M18 8a6 6 0 00-12 0c0 7-3 9-3 9h18s-3-2-3-9M13.7 21a2 2 0 01-3.4 0"/></>} size={17}/>,
+  send:     <Ico d={<><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/></>} size={17}/>,
+  upload:   <Ico d={<><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"/></>} size={15}/>,
+  download: <Ico d={<><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/></>} size={15}/>,
+  plus:     <Ico d={<><path d="M12 5v14M5 12h14"/></>} size={16} sw={2.2}/>,
+  filter:   <Ico d={<><path d="M22 3H2l8 9.46V19l4 2v-8.54L22 3z"/></>} size={15}/>,
+  print:    <Ico d={<><path d="M6 9V2h12v7M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2M6 14h12v8H6z"/></>} size={15}/>,
+  doc:      <Ico d={<><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6"/></>} size={15}/>,
+  micro:    <Ico d={<><path d="M6 18h8M3 22h18M14 22a7 7 0 100-14h-1M9 14h2M9 12a2 2 0 01-2-2V6a2 2 0 012-2 2 2 0 012 2v4a2 2 0 01-2 2z"/></>} size={15}/>,
+};
+
+/* ════════════════ DATA ════════════════ */
+const SPECIALTIES = {
+  'Dermatopatología':  { c:'purple', short:'Dermato' },
+  'Patología mamaria': { c:'pink',   short:'Mama' },
+  'Ginecológica':      { c:'blue',   short:'Gineco' },
+  'Digestiva':         { c:'amber',  short:'Digestiva' },
+};
+const specStyle = (s) => {
+  const m = { purple:['var(--purple-bg)','var(--purple)'], pink:['var(--pink-bg)','var(--pink)'], blue:['var(--blue-bg)','var(--blue)'], amber:['var(--amber-bg)','var(--amber)'], teal:['var(--brand-50)','var(--brand-700)'] };
+  return m[SPECIALTIES[s]?.c] || m.teal;
+};
+
+const STATES = {
+  recibida:    { label:'Recepción',     color:'#8a98a8', dot:'#8a98a8' },
+  tallado:     { label:'Tallado',       color:'#1d4ed8', dot:'#1d4ed8' },
+  procesando:  { label:'Procesamiento', color:'#7c3aed', dot:'#7c3aed' },
+  diagnostico: { label:'Diagnóstico',   color:'#b45309', dot:'#b45309' },
+  validado:    { label:'Validado',      color:'#0f7a4f', dot:'#0f7a4f' },
+};
+const stateBg = { recibida:['#eef1f4','#5a6b7e'], tallado:['var(--blue-bg)','var(--blue)'], procesando:['var(--purple-bg)','var(--purple)'], diagnostico:['var(--amber-bg)','var(--amber)'], validado:['var(--green-bg)','var(--green)'] };
+
+const PATHOLOGISTS = [
+  { name:'Dra. Marta Vendrell', spec:'Dermatopatología', color:'#7c3aed', init:'MV', count:7 },
+  { name:'Dr. Jordi Camps',     spec:'Digestiva',        color:'#b45309', init:'JC', count:5 },
+  { name:'Dra. Núria Solé',     spec:'Ginecológica',     color:'#1d4ed8', init:'NS', count:6 },
+  { name:'Dr. Albert Riera',    spec:'Patología mamaria',color:'#be185d', init:'AR', count:4 },
+];
+
+let SID = 926;
+const mkSample = (o) => ({ id:`BP-25-${String(o.n).padStart(5,'0')}`, ...o });
+
+const INITIAL_SAMPLES = [
+  mkSample({ n:921, type:'Biopsia cutánea — lesión melanocítica', patient:'Soler Camps, Mercè', age:58, sex:'M', ref:'Dr. Pujol (CAP Sarrià)', spec:'Dermatopatología', tech:'Dra. Marta Vendrell', state:'diagnostico', urgent:true,  received:'28/06 08:12', blocks:2, slides:3 }),
+  mkSample({ n:922, type:'Citología cérvico-vaginal (Papanicolaou)', patient:'Roca Vila, Anna', age:42, sex:'M', ref:'Clínica Diagonal', spec:'Ginecológica', tech:'Dra. Núria Solé', state:'procesando', urgent:false, received:'28/06 08:40', blocks:1, slides:1 }),
+  mkSample({ n:923, type:'Biopsia con aguja gruesa (BAG) mama', patient:'Ferrer Mas, Dolors', age:51, sex:'M', ref:'Hospital del Mar', spec:'Patología mamaria', tech:'Dr. Albert Riera', state:'diagnostico', urgent:true, received:'27/06 16:05', blocks:3, slides:5 }),
+  mkSample({ n:924, type:'Biopsia gástrica endoscópica', patient:'Martí Pons, Quim', age:64, sex:'H', ref:'Dr. Sànchez (Digest.)', spec:'Digestiva', tech:'Dr. Jordi Camps', state:'tallado', urgent:false, received:'28/06 09:20', blocks:4, slides:0 }),
+  mkSample({ n:925, type:'Exéresis nevus melanocítico', patient:'Bonet Riu, Pau', age:34, sex:'H', ref:'Clínica Tres Torres', spec:'Dermatopatología', tech:'Dra. Marta Vendrell', state:'procesando', urgent:false, received:'27/06 14:30', blocks:1, slides:2 }),
+  mkSample({ n:926, type:'Pólipo colónico (polipectomía) x2', patient:'Vidal Sans, Rosa', age:69, sex:'M', ref:'Hospital Clínic', spec:'Digestiva', tech:'Dr. Jordi Camps', state:'recibida', urgent:false, received:'28/06 10:02', blocks:0, slides:0 }),
+  mkSample({ n:918, type:'Biopsia endometrial', patient:'Costa Mir, Laia', age:47, sex:'M', ref:'Dexeus Mujer', spec:'Ginecológica', tech:'Dra. Núria Solé', state:'validado', urgent:false, received:'26/06 11:15', blocks:2, slides:2 }),
+  mkSample({ n:917, type:'Tumorectomía mama — pieza quirúrgica', patient:'Pla Estruch, Carme', age:55, sex:'M', ref:'Hospital de Sant Pau', spec:'Patología mamaria', tech:'Dr. Albert Riera', state:'validado', urgent:false, received:'25/06 09:48', blocks:6, slides:9 }),
+  mkSample({ n:919, type:'Biopsia carcinoma basocelular', patient:'Grau Oller, Enric', age:72, sex:'H', ref:'CAP Gràcia', spec:'Dermatopatología', tech:'Dra. Marta Vendrell', state:'validado', urgent:false, received:'25/06 12:30', blocks:1, slides:1 }),
+  mkSample({ n:920, type:'Biopsia esofágica (Barrett)', patient:'Lluch Vall, Òscar', age:60, sex:'H', ref:'Dr. Sànchez (Digest.)', spec:'Digestiva', tech:'Dr. Jordi Camps', state:'tallado', urgent:false, received:'28/06 08:55', blocks:5, slides:0 }),
+];
+
+const TRACE = (s) => {
+  const order = ['recibida','tallado','procesando','diagnostico','validado'];
+  const idx = order.indexOf(s.state);
+  const base = [
+    { t:'Recepción y registro', who:'Recepción · Sistema BP', when:s.received, step:0 },
+    { t:'Tallado macroscópico', who:s.tech, when:'+ 1h 10min', step:1 },
+    { t:'Procesamiento e inclusión en parafina', who:'Técnico de laboratorio', when:'+ 4h', step:2 },
+    { t:'Corte, tinción H&E y montaje', who:'Técnico de laboratorio', when:'+ 6h', step:2 },
+    { t:'Diagnóstico microscópico', who:s.tech, when:'En curso', step:3 },
+    { t:'Validación y firma del informe', who:s.tech, when:'Pendiente', step:4 },
+  ];
+  return base.map(b => ({ ...b, status: b.step < idx ? 'done' : b.step === idx ? 'active' : 'pending' }));
+};
+
+const SNOMED = {
+  'Dermatopatología':  { code:'M-87203', t:'Melanoma maligno', topo:'T-01000 Piel' },
+  'Patología mamaria': { code:'M-85003', t:'Carcinoma ductal infiltrante', topo:'T-04000 Mama' },
+  'Ginecológica':      { code:'M-74007', t:'Displasia / SIL', topo:'T-83000 Cérvix uterino' },
+  'Digestiva':         { code:'M-82110', t:'Adenoma tubular', topo:'T-67000 Colon' },
+};
+
+const DOCS = [
+  { id:1, name:'Protocolo tinción H&E v3.2', tipo:'Técnica', pages:8, date:'22/06/2025', ico:'🧪' },
+  { id:2, name:'Manual diagnóstico Dermatopatología', tipo:'Diagnóstico', pages:64, date:'18/06/2025', ico:'🔬' },
+  { id:3, name:'Criterios Bethesda — Citología cervical', tipo:'Diagnóstico', pages:28, date:'12/06/2025', ico:'🔬' },
+  { id:4, name:'SNOMED CT — Guía de codificación', tipo:'Codificación', pages:45, date:'01/06/2025', ico:'🏷️' },
+  { id:5, name:'Norma ISO 15189:2022 — Calidad', tipo:'Calidad', pages:52, date:'10/05/2025', ico:'✅' },
+  { id:6, name:'Protocolo bioseguridad NB-2', tipo:'Seguridad', pages:24, date:'05/05/2025', ico:'🛡️' },
+];
+
+const AUDIT = [
+  { ico:'✅', bg:'green', desc:'Informe BP-25-00918 validado y firmado digitalmente', who:'Dra. Núria Solé', tag:'Validado', tagc:'green', time:'Hace 9 min' },
+  { ico:'🤖', bg:'teal',  desc:'Borrador de informe generado con IA · BP-25-00923', who:'Asistente LabAI', tag:'IA', tagc:'teal', time:'Hace 24 min' },
+  { ico:'⚠️', bg:'red',   desc:'Muestra BP-25-00921 marcada URGENTE (sospecha melanoma)', who:'Dra. Marta Vendrell', tag:'Urgente', tagc:'red', time:'Hace 41 min' },
+  { ico:'🔬', bg:'purple',desc:'Tallado macroscópico registrado · BP-25-00924', who:'Dr. Jordi Camps', tag:'Tallado', tagc:'blue', time:'Hace 1h 12min' },
+  { ico:'📥', bg:'blue',  desc:'8 muestras recibidas — Hospital del Mar (valija 14:00)', who:'Recepción', tag:'Recepción', tagc:'blue', time:'Hace 2h' },
+  { ico:'🤖', bg:'teal',  desc:'Consulta IA · criterios diagnósticos Bethesda', who:'Dra. Núria Solé', tag:'IA', tagc:'teal', time:'Hace 3h' },
+  { ico:'🔑', bg:'amber', desc:'Acceso de revisión externa (2ª opinión Vall d\'Hebron)', who:'Dr. Albert Riera', tag:'Acceso', tagc:'amber', time:'Hace 4h' },
+  { ico:'✅', bg:'green', desc:'Informe BP-25-00917 enviado a Hospital de Sant Pau', who:'Sistema BP', tag:'Enviado', tagc:'green', time:'Ayer 17:48' },
+];
+const auditBg = { green:['var(--green-bg)','var(--green)'], teal:['var(--brand-50)','var(--brand-700)'], red:['var(--red-bg)','var(--red)'], purple:['var(--purple-bg)','var(--purple)'], blue:['var(--blue-bg)','var(--blue)'], amber:['var(--amber-bg)','var(--amber)'] };
+
+const REPORT_TEMPLATES = {
+  'Dermatopatología': ['Nevus melanocítico benigno','Melanoma maligno','Carcinoma basocelular','Carcinoma epidermoide','Queratosis seborreica'],
+  'Patología mamaria': ['Carcinoma ductal infiltrante','Carcinoma in situ (CDIS)','Fibroadenoma','Cambios fibroquísticos','Biopsia BAG — benigna'],
+  'Ginecológica': ['Citología cervical — negativa','SIL de bajo grado (LSIL)','SIL de alto grado (HSIL)','Hiperplasia endometrial','Pólipo endometrial'],
+  'Digestiva': ['Adenoma tubular','Adenocarcinoma de colon','Esófago de Barrett','Gastritis crónica H. pylori','Enfermedad celíaca'],
+};
+
+/* ── Modo demostración: IA simulada (sin clave) ── */
+const sleep = (ms) => new Promise(r=>setTimeout(r, ms));
+
+function simulateChatReply(q, samples) {
+  const t = q.toLowerCase();
+  if (/urgent|pendient/.test(t)) {
+    const u = samples.filter(s=>s.urgent && s.state!=='validado');
+    if (!u.length) return 'En este momento **no hay muestras urgentes pendientes** de diagnóstico. Todas las prioritarias están validadas. ✅';
+    return `Actualmente hay **${u.length} muestra${u.length>1?'s':''} urgente${u.length>1?'s':''}** pendiente${u.length>1?'s':''} de diagnóstico:\n\n${u.map(s=>`• \`${s.id}\` — ${s.type} (${s.patient}), asignada a ${s.tech}`).join('\n')}\n\nRecomiendo priorizar su lectura microscópica en la sesión de hoy.`;
+  }
+  if (/breslow|melanoma/.test(t)) {
+    return 'El **índice de Breslow** mide el grosor tumoral del melanoma desde la capa granular de la epidermis hasta la célula tumoral más profunda:\n\n• **≤ 0,8 mm** — bajo riesgo (pT1a)\n• **0,8–1,0 mm o con ulceración** — pT1b\n• **1,0–2,0 mm** — pT2\n• **2,0–4,0 mm** — pT3\n• **> 4,0 mm** — alto riesgo (pT4)\n\nSe considera melanoma de **alto riesgo** a partir de **> 1,0 mm con ulceración** o **> 2,0 mm**, donde se valora la biopsia selectiva del ganglio centinela. [Manual diagnóstico Dermatopatología]';
+  }
+  if (/bethesda|citolog|cervic|papanic/.test(t)) {
+    return 'El **sistema Bethesda 2014** clasifica la citología cérvico-vaginal en:\n\n• **NILM** — negativo para lesión intraepitelial o malignidad\n• **ASC-US / ASC-H** — células escamosas atípicas de significado indeterminado / sin excluir HSIL\n• **LSIL** — lesión intraepitelial de bajo grado (VPH, CIN 1)\n• **HSIL** — lesión intraepitelial de alto grado (CIN 2-3)\n• **AGC** — células glandulares atípicas\n• **Carcinoma** escamoso o adenocarcinoma\n\nEs imprescindible valorar la **idoneidad de la muestra** (satisfactoria / no satisfactoria) antes del diagnóstico. [Criterios Bethesda — Citología cervical]';
+  }
+  if (/snomed|c[oó]digo|ductal|mama/.test(t)) {
+    return 'Codificación **SNOMED CT** para el carcinoma ductal infiltrante de mama:\n\n• **Morfología:** `M-85003` — Carcinoma ductal infiltrante, SAI\n• **Topografía:** `T-04000` — Mama, SAI\n\nSe complementa con la gradación histológica de **Nottingham** (grado 1-3) y el perfil inmunohistoquímico (RE, RP, HER2, Ki-67). [SNOMED CT — Guía de codificación]';
+  }
+  if (/h&e|tinci[oó]n|fijaci[oó]n|protocolo|procesamiento/.test(t)) {
+    return 'Resumen del **procesamiento histológico estándar** [Protocolo tinción H&E v3.2]:\n\n1. **Fijación** en formol tamponado al 10% (6–48 h según tamaño)\n2. **Tallado macroscópico** y descripción\n3. **Procesamiento** (deshidratación con alcoholes crecientes, aclarado en xilol)\n4. **Inclusión** en parafina y formación del bloque\n5. **Corte** en microtomo (3–5 µm)\n6. **Tinción Hematoxilina-Eosina** y montaje\n7. **Diagnóstico microscópico** y validación\n\nEl tiempo de fijación adecuado es crítico para preservar la morfología y permitir técnicas posteriores (IHQ, biología molecular).';
+  }
+  return `Buena pregunta. En el laboratorio BCN Patòlegs trabajamos las cuatro áreas de **dermatopatología, patología mamaria, ginecológica y digestiva**. Sobre "${q.slice(0,80)}", el enfoque diagnóstico se basa en la correlación clínico-patológica, los criterios morfológicos en H&E y, cuando procede, técnicas de inmunohistoquímica y codificación SNOMED CT.\n\n*(Respuesta del modo demostración. Conecta una clave de Groq desde «Activar IA» para respuestas con IA completa sobre cualquier consulta.)*`;
+}
+
+function simulateReport(sample, spec, template, macro, micro) {
+  const sn = SNOMED[spec];
+  const grading = {
+    'Dermatopatología':'Índice de Breslow y nivel de Clark según corresponda. Valorar márgenes de resección y biopsia de ganglio centinela si pT1b o superior.',
+    'Patología mamaria':'Gradación histológica de Nottingham. Se recomienda completar con estudio inmunohistoquímico (RE, RP, HER2, Ki-67).',
+    'Ginecológica':'Clasificación según sistema Bethesda. Correlación con genotipado de VPH de alto riesgo.',
+    'Digestiva':'Grado de displasia (bajo/alto). Valorar márgenes de polipectomía y seguimiento endoscópico según protocolo.',
+  };
+  return `DATOS DE LA MUESTRA
+Referencia: ${sample.id}
+Paciente: ${sample.patient}, ${sample.age} años, ${sample.sex==='M'?'mujer':'hombre'}
+Tipo de muestra: ${sample.type}
+Especialidad: ${spec}
+Orientación diagnóstica: ${template}
+
+DESCRIPCIÓN MACROSCÓPICA
+${macro}
+
+DESCRIPCIÓN MICROSCÓPICA
+${micro}
+
+DIAGNÓSTICO
+${template}. Los hallazgos morfológicos descritos son compatibles con el diagnóstico orientativo. ${grading[spec]}
+
+CODIFICACIÓN SNOMED CT
+Morfología: ${sn.code} — ${sn.t}
+Topografía: ${sn.topo}
+
+COMENTARIO / RECOMENDACIONES
+Informe redactado a partir de los hallazgos consignados por el patólogo. Se recomienda correlación clínica. [PENDIENTE: validación y firma del facultativo responsable antes de la emisión definitiva].
+
+— — —
+(Borrador generado en modo demostración. Con una clave de Groq conectada, la redacción la realiza el modelo de IA Llama 3.3 70B adaptándose a cada caso.)`;
+}
+
+const GROQ_MODEL = 'llama-3.3-70b-versatile';
+const SYS_PROMPT = `Eres LabAI, el asistente de inteligencia artificial integrado en el sistema de gestión del laboratorio de anatomía patológica BCN Patòlegs (Barcelona). Especialidades del laboratorio: dermatopatología, patología mamaria, patología ginecológica y patología digestiva.
+
+Ayudas a patólogos y técnicos respondiendo de forma TÉCNICA y PRECISA sobre:
+- Protocolos internos del laboratorio (tinción H&E, fijación, procesamiento, bioseguridad)
+- Trazabilidad y estado de muestras
+- Codificación SNOMED CT (morfología M-xxxxx y topografía T-xxxxx)
+- Criterios diagnósticos anatomopatológicos (Bethesda, Breslow, Clark, clasificación TNM, etc.)
+- Normativa ISO 15189:2022 y control de calidad
+
+Reglas:
+- Responde en español, con terminología médica rigurosa.
+- Sé conciso pero completo; usa listas cuando aporte claridad.
+- Cuando uses información de un protocolo, cítalo entre corchetes así: [Protocolo H&E v3.2].
+- Si una pregunta excede el contexto del laboratorio, indícalo y reconduce.
+- Nunca inventes códigos SNOMED ni datos de pacientes que no se te hayan dado.`;
+
+/* ════════════════ ROOT ════════════════ */
+function App() {
+  const [view, setView] = useState('dashboard');
+  const [apiKey, setApiKey] = useState(() => localStorage.getItem('labai_groq_key') || '');
+  const [showKeyModal, setShowKeyModal] = useState(false);
+  const [showGuide, setShowGuide] = useState(() => !localStorage.getItem('labai_onboarded'));
+  const [samples, setSamples] = useState(INITIAL_SAMPLES);
+  const [toast, setToast] = useState(null);
+
+  const closeGuide = () => { setShowGuide(false); localStorage.setItem('labai_onboarded','1'); };
+
+  const hasKey = apiKey.startsWith('gsk_');
+
+  const showToast = useCallback((msg) => {
+    setToast(msg);
+    setTimeout(() => setToast(null), 2600);
+  }, []);
+
+  const saveKey = (k) => {
+    setApiKey(k);
+    if (k.startsWith('gsk_')) localStorage.setItem('labai_groq_key', k);
+    else localStorage.removeItem('labai_groq_key');
+  };
+
+  const addSample = (s) => {
+    setSamples(prev => [s, ...prev]);
+    showToast(`Muestra ${s.id} registrada correctamente`);
+  };
+  const updateSampleState = (id, state) => {
+    setSamples(prev => prev.map(s => s.id === id ? { ...s, state } : s));
+  };
+
+  const titles = {
+    dashboard: ['Panel general', 'Resumen de actividad del laboratorio'],
+    samples:   ['Muestras', 'Trazabilidad y flujo de trabajo'],
+    chat:      ['Asistente IA', 'Consulta clínica inteligente sobre protocolos y muestras'],
+    reports:   ['Informes', 'Redacción asistida con inteligencia artificial'],
+    quality:   ['Calidad y trazabilidad', 'Auditoría · ISO 15189 · RGPD'],
+  };
+
+  return (
+    <div className="app">
+      <Sidebar view={view} setView={setView} samples={samples} />
+      <div className="main">
+        <Topbar title={titles[view]} hasKey={hasKey} onKeyClick={() => setShowKeyModal(true)} onGuide={() => setShowGuide(true)} />
+        <div className="content">
+          <div className="content-narrow" style={{height: (view==='chat'||view==='reports') ? '100%' : 'auto'}}>
+            {view === 'dashboard' && <Dashboard samples={samples} setView={setView} />}
+            {view === 'samples'   && <Samples samples={samples} addSample={addSample} updateState={updateSampleState} />}
+            {view === 'chat'      && <Chat apiKey={apiKey} hasKey={hasKey} onNeedKey={() => setShowKeyModal(true)} samples={samples} />}
+            {view === 'reports'   && <Reports apiKey={apiKey} hasKey={hasKey} onNeedKey={() => setShowKeyModal(true)} samples={samples} showToast={showToast} />}
+            {view === 'quality'   && <Quality samples={samples} />}
+          </div>
+        </div>
+      </div>
+
+      {showKeyModal && <KeyModal current={apiKey} onSave={(k)=>{saveKey(k); setShowKeyModal(false); showToast(k.startsWith('gsk_')?'IA activada correctamente':'Clave eliminada');}} onClose={()=>setShowKeyModal(false)} />}
+      {showGuide && <Onboarding onClose={closeGuide} goTo={setView} />}
+      {toast && <div className="toast-wrap"><div className="toast">✓ {toast}</div></div>}
+    </div>
+  );
+}
+
+/* ════════════════ SIDEBAR ════════════════ */
+function Sidebar({ view, setView, samples }) {
+  const urgent = samples.filter(s => s.urgent && s.state !== 'validado').length;
+  const pend   = samples.filter(s => s.state !== 'validado').length;
+  const nav = [
+    { group:'Laboratorio', items:[
+      { id:'dashboard', ico:I.dash, label:'Panel general' },
+      { id:'samples', ico:I.sample, label:'Muestras', badge: urgent ? {n:urgent, t:'red'} : null },
+      { id:'reports', ico:I.report, label:'Informes' },
+    ]},
+    { group:'Inteligencia IA', items:[
+      { id:'chat', ico:I.ai, label:'Asistente IA' },
+    ]},
+    { group:'Sistema', items:[
+      { id:'quality', ico:I.quality, label:'Calidad' },
+    ]},
+  ];
+  const extraStatic = {
+    'Laboratorio': [{ ico:I.archive, label:'Archivo histórico' }],
+    'Inteligencia IA': [{ ico:I.analyze, label:'Análisis de documentos' }, { ico:I.report, label:'Redacción IA' }],
+    'Sistema': [{ ico:I.team, label:'Equipo' }, { ico:I.settings, label:'Configuración' }],
+  };
+
+  return (
+    <aside className="sidebar">
+      <div className="brand">
+        <div className="brand-mark">BP</div>
+        <div className="brand-text">
+          <div className="brand-name">BCN Patòlegs</div>
+          <div className="brand-sub">Anatomia Patològica</div>
+        </div>
+      </div>
+      <nav className="nav">
+        {nav.map(g => (
+          <div className="nav-group" key={g.group}>
+            <div className="nav-label">{g.group}</div>
+            {g.items.map(it => (
+              <button key={it.id} className={`nav-item${view===it.id?' active':''}`} onClick={()=>setView(it.id)}>
+                <span className="nav-ico">{it.ico}</span>
+                {it.label}
+                {it.badge && <span className={`nav-badge ${it.badge.t==='amber'?'amber':''}`}>{it.badge.n}</span>}
+              </button>
+            ))}
+            {(extraStatic[g.group]||[]).map((it,i) => (
+              <button key={'s'+i} className="nav-item" onClick={()=>{}}>
+                <span className="nav-ico">{it.ico}</span>{it.label}
+              </button>
+            ))}
+          </div>
+        ))}
+      </nav>
+      <div className="sidebar-footer">
+        <div className="lab-card">
+          <div className="lab-card-title">BCN Patòlegs · Diagnostics</div>
+          <div className="lab-card-addr">Pg. de Josep Llovera, 9<br/>08021 Barcelona</div>
+        </div>
+      </div>
+    </aside>
+  );
+}
+
+/* ════════════════ TOPBAR ════════════════ */
+function Topbar({ title, hasKey, onKeyClick, onGuide }) {
+  return (
+    <header className="topbar">
+      <div className="breadcrumb">
+        <span className="crumb-main">{title[0]}</span>
+      </div>
+      <div className="topbar-search">
+        <span className="search-ico">{I.search}</span>
+        <input placeholder="Buscar muestra, paciente, referencia..." />
+      </div>
+      <div className="topbar-right">
+        <button className="ai-pill" onClick={onGuide} style={{padding:'0 12px'}} title="Ver guía de uso">
+          <span style={{fontWeight:800,color:'var(--brand-600)'}}>?</span> Guía
+        </button>
+        <button className={`ai-pill${hasKey?' on':''}`} onClick={onKeyClick}>
+          <span className="ai-dot"></span>
+          {hasKey ? 'IA activa' : 'Activar IA'}
+        </button>
+        <button className="icon-btn"><span className="dot-alert"></span>{I.bell}</button>
+        <div className="user-chip">
+          <div className="user-av">MV</div>
+          <div className="user-meta">
+            <div className="user-name">Dra. M. Vendrell</div>
+            <div className="user-role">Patóloga · Admin</div>
+          </div>
+        </div>
+      </div>
+    </header>
+  );
+}
+
+/* ════════════════ DASHBOARD ════════════════ */
+function Dashboard({ samples, setView }) {
+  const total = samples.length;
+  const urgent = samples.filter(s=>s.urgent && s.state!=='validado').length;
+  const inProc = samples.filter(s=>['tallado','procesando','diagnostico'].includes(s.state)).length;
+  const validated = samples.filter(s=>s.state==='validado').length;
+
+  const bySpec = Object.keys(SPECIALTIES).map(sp => ({
+    name: sp, count: samples.filter(s=>s.spec===sp).length, c: specStyle(sp)[1]
+  }));
+  const totalSpec = bySpec.reduce((a,b)=>a+b.count,0) || 1;
+
+  // donut
+  let acc = 0;
+  const segs = bySpec.map(s => {
+    const frac = s.count/totalSpec;
+    const seg = { ...s, start: acc, len: frac };
+    acc += frac; return seg;
+  });
+  const R = 54, C = 2*Math.PI*R;
+
+  const stats = [
+    { ico:'🧫', bg:['var(--brand-50)','var(--brand-700)'], num:total, label:'Muestras activas', trend:'+3 hoy', tc:'trend-up' },
+    { ico:'⚠️', bg:['var(--red-bg)','var(--red)'], num:urgent, label:'Casos urgentes', trend:'Prioridad', tc:'trend-down' },
+    { ico:'🔬', bg:['var(--purple-bg)','var(--purple)'], num:inProc, label:'En proceso', trend:'En curso', tc:'trend-flat' },
+    { ico:'✅', bg:['var(--green-bg)','var(--green)'], num:validated, label:'Validadas (mes)', trend:'+12%', tc:'trend-up' },
+  ];
+
+  return (
+    <div>
+      <div className="page-head">
+        <div>
+          <h1>Bon dia, Dra. Vendrell 👋</h1>
+          <p>Tienes <strong>{urgent} caso{urgent!==1?'s':''} urgente{urgent!==1?'s':''}</strong> pendiente{urgent!==1?'s':''} de diagnóstico · {inProc} muestras en proceso</p>
+        </div>
+        <div className="page-head-actions">
+          <button className="btn btn-ghost" onClick={()=>setView('quality')}>Ver auditoría</button>
+          <button className="btn btn-primary" onClick={()=>setView('samples')}>{I.plus} Nueva muestra</button>
+        </div>
+      </div>
+
+      <div className="stat-grid">
+        {stats.map((s,i)=>(
+          <div className="stat" key={i}>
+            <div className="stat-top">
+              <div className="stat-ico" style={{background:s.bg[0], color:s.bg[1]}}>{s.ico}</div>
+              <span className={`stat-trend ${s.tc}`}>{s.trend}</span>
+            </div>
+            <div className="stat-num">{s.num}</div>
+            <div className="stat-label">{s.label}</div>
+          </div>
+        ))}
+      </div>
+
+      <div className="dash-grid">
+        <div className="card">
+          <div className="card-head">
+            <h3>Carga de trabajo por patólogo</h3>
+            <div className="card-actions"><span style={{fontSize:11.5,color:'var(--text-3)'}}>Casos asignados hoy</span></div>
+          </div>
+          <div style={{padding:'8px 18px 14px'}}>
+            {PATHOLOGISTS.map((p,i)=>{
+              const max = Math.max(...PATHOLOGISTS.map(x=>x.count));
+              return (
+                <div className="workload-row" key={i}>
+                  <div className="wl-av" style={{background:p.color}}>{p.init}</div>
+                  <div style={{minWidth:150}}>
+                    <div className="wl-name">{p.name}</div>
+                    <div className="wl-spec">{p.spec}</div>
+                  </div>
+                  <div className="wl-bar-wrap">
+                    <div className="wl-bar"><div style={{height:'100%',width:`${p.count/max*100}%`,background:p.color,borderRadius:99}}></div></div>
+                  </div>
+                  <div className="wl-count">{p.count} casos</div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        <div className="card">
+          <div className="card-head"><h3>Distribución por especialidad</h3></div>
+          <div style={{padding:'18px'}}>
+            <div className="donut-wrap">
+              <svg className="donut" viewBox="0 0 130 130">
+                <circle cx="65" cy="65" r={R} fill="none" stroke="var(--surface-2)" strokeWidth="16"/>
+                {segs.map((s,i)=>(
+                  <circle key={i} cx="65" cy="65" r={R} fill="none" stroke={s.c} strokeWidth="16"
+                    strokeDasharray={`${s.len*C} ${C}`} strokeDashoffset={`${-s.start*C}`}
+                    transform="rotate(-90 65 65)" strokeLinecap="butt"/>
+                ))}
+                <text x="65" y="61" textAnchor="middle" fontSize="22" fontWeight="800" fill="var(--text)">{totalSpec}</text>
+                <text x="65" y="77" textAnchor="middle" fontSize="9" fontWeight="600" fill="var(--text-3)">MUESTRAS</text>
+              </svg>
+              <div style={{flex:1}}>
+                {bySpec.map((s,i)=>(
+                  <div className="legend-item" key={i}>
+                    <span className="legend-dot" style={{background:s.c}}></span>
+                    <span className="legend-label">{s.name}</span>
+                    <span className="legend-val">{s.count}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="card">
+        <div className="card-head">
+          <h3>Actividad reciente</h3>
+          <div className="card-actions"><button className="btn btn-ghost btn-sm" onClick={()=>setView('quality')}>Ver todo</button></div>
+        </div>
+        <div>
+          {AUDIT.slice(0,4).map((a,i)=>(
+            <div className="audit-item" key={i}>
+              <div className="audit-ico" style={{background:auditBg[a.bg][0],color:auditBg[a.bg][1]}}>{a.ico}</div>
+              <div className="audit-main">
+                <div className="audit-desc">{a.desc}</div>
+                <div className="audit-sub">{a.who}</div>
+              </div>
+              <span className="audit-tag" style={{background:auditBg[a.tagc][0],color:auditBg[a.tagc][1]}}>{a.tag}</span>
+              <div className="audit-time">{a.time}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ════════════════ SAMPLES ════════════════ */
+function Samples({ samples, addSample, updateState }) {
+  const [mode, setMode] = useState('kanban');
+  const [filter, setFilter] = useState('all');
+  const [selected, setSelected] = useState(null);
+  const [showNew, setShowNew] = useState(false);
+
+  const filtered = filter==='all' ? samples : samples.filter(s=>s.spec===filter);
+  const cols = ['recibida','tallado','procesando','diagnostico','validado'];
+
+  return (
+    <div>
+      <div className="page-head">
+        <div>
+          <h1>Muestras</h1>
+          <p>{filtered.length} muestras · trazabilidad completa en tiempo real</p>
+        </div>
+        <div className="page-head-actions">
+          <button className="btn btn-primary" onClick={()=>setShowNew(true)}>{I.plus} Nueva muestra</button>
+        </div>
+      </div>
+
+      <div className="card" style={{marginBottom:16}}>
+        <div className="card-head" style={{padding:'12px 16px'}}>
+          <div className="seg">
+            <button className={mode==='kanban'?'on':''} onClick={()=>setMode('kanban')}>Flujo</button>
+            <button className={mode==='table'?'on':''} onClick={()=>setMode('table')}>Tabla</button>
+          </div>
+          <div style={{display:'flex',gap:6,marginLeft:14,flexWrap:'wrap'}}>
+            <button className={`btn btn-sm ${filter==='all'?'btn-soft':'btn-ghost'}`} onClick={()=>setFilter('all')}>Todas</button>
+            {Object.keys(SPECIALTIES).map(sp=>(
+              <button key={sp} className={`btn btn-sm ${filter===sp?'btn-soft':'btn-ghost'}`} onClick={()=>setFilter(sp)}>{SPECIALTIES[sp].short}</button>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {mode==='kanban' ? (
+        <div className="kanban">
+          {cols.map(col=>{
+            const items = filtered.filter(s=>s.state===col);
+            return (
+              <div className="kcol" key={col}>
+                <div className="kcol-head">
+                  <span className="kcol-dot" style={{background:STATES[col].dot}}></span>
+                  <span className="kcol-title">{STATES[col].label}</span>
+                  <span className="kcol-count">{items.length}</span>
+                </div>
+                <div className="kcol-body">
+                  {items.map(s=>{
+                    const [bg,fg] = specStyle(s.spec);
+                    return (
+                      <div className="scard" key={s.id} onClick={()=>setSelected(s)}>
+                        <div className="scard-top">
+                          <span className="scard-id">{s.id}</span>
+                          {s.urgent && <span className="scard-urgent">URGENTE</span>}
+                        </div>
+                        <div className="scard-name">{s.type}</div>
+                        <div className="scard-patient">👤 {s.patient} · {s.age}a</div>
+                        <div className="scard-foot">
+                          <span className="spec-pill" style={{background:bg,color:fg}}>{SPECIALTIES[s.spec].short}</span>
+                          <span className="scard-date">{s.received.split(' ')[0]}</span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                  {items.length===0 && <div style={{fontSize:11.5,color:'var(--text-3)',textAlign:'center',padding:'14px 0'}}>Sin muestras</div>}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      ) : (
+        <div className="card">
+          <div className="tbl-wrap">
+            <table className="tbl">
+              <thead><tr>
+                <th>Referencia</th><th>Tipo de muestra</th><th>Paciente</th><th>Especialidad</th><th>Patólogo</th><th>Estado</th><th>Recepción</th>
+              </tr></thead>
+              <tbody>
+                {filtered.map(s=>{
+                  const [sbg,sfg]=stateBg[s.state]; const [bg,fg]=specStyle(s.spec);
+                  return (
+                    <tr key={s.id} onClick={()=>setSelected(s)}>
+                      <td><span className="mono">{s.id}</span>{s.urgent && <span className="scard-urgent" style={{marginLeft:8}}>URG</span>}</td>
+                      <td style={{fontWeight:600,maxWidth:240}}>{s.type}</td>
+                      <td>{s.patient} <span style={{color:'var(--text-3)'}}>· {s.age}a {s.sex}</span></td>
+                      <td><span className="spec-pill" style={{background:bg,color:fg}}>{SPECIALTIES[s.spec].short}</span></td>
+                      <td style={{color:'var(--text-2)'}}>{s.tech.replace('Dra. ','Dra. ').replace('Dr. ','Dr. ')}</td>
+                      <td><span className="status-pill" style={{background:sbg,color:sfg}}><span className="sp-dot" style={{background:sfg}}></span>{STATES[s.state].label}</span></td>
+                      <td style={{color:'var(--text-3)',fontSize:12}}>{s.received}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {selected && <SampleDrawer sample={selected} onClose={()=>setSelected(null)} updateState={updateState} setSelected={setSelected} />}
+      {showNew && <NewSampleModal onClose={()=>setShowNew(false)} onAdd={(s)=>{addSample(s); setShowNew(false);}} />}
+    </div>
+  );
+}
+
+function SampleDrawer({ sample, onClose, updateState, setSelected }) {
+  const s = sample;
+  const [bg,fg] = specStyle(s.spec);
+  const trace = TRACE(s);
+  const sn = SNOMED[s.spec];
+  const order = ['recibida','tallado','procesando','diagnostico','validado'];
+  const nextState = order[Math.min(order.indexOf(s.state)+1, order.length-1)];
+  const canAdvance = s.state !== 'validado';
+
+  const advance = () => {
+    updateState(s.id, nextState);
+    setSelected({ ...s, state: nextState });
+  };
+
+  return (
+    <Portal>
+    <div className="drawer-overlay" onClick={e=>e.target===e.currentTarget && onClose()}>
+      <div className="drawer">
+        <div className="drawer-head">
+          <div>
+            <div className="dh-id">{s.id} {s.urgent && <span style={{color:'var(--red)'}}>· URGENTE</span>}</div>
+            <h2>{s.type}</h2>
+          </div>
+          <button className="drawer-close" onClick={onClose}>×</button>
+        </div>
+        <div className="drawer-body">
+          <div style={{marginBottom:6}}>
+            <span className="spec-pill" style={{background:bg,color:fg,fontSize:11.5,padding:'4px 11px'}}>{s.spec}</span>
+            {(() => { const [sbg,sfg]=stateBg[s.state]; return <span className="status-pill" style={{background:sbg,color:sfg,marginLeft:8}}><span className="sp-dot" style={{background:sfg}}></span>{STATES[s.state].label}</span>; })()}
+          </div>
+
+          <div className="detail-grid" style={{marginTop:18}}>
+            <div className="detail-item"><div className="di-label">Paciente</div><div className="di-val">{s.patient}</div></div>
+            <div className="detail-item"><div className="di-label">Edad / Sexo</div><div className="di-val">{s.age} años · {s.sex==='M'?'Mujer':'Hombre'}</div></div>
+            <div className="detail-item"><div className="di-label">Centro / médico</div><div className="di-val">{s.ref}</div></div>
+            <div className="detail-item"><div className="di-label">Patólogo asignado</div><div className="di-val">{s.tech}</div></div>
+            <div className="detail-item"><div className="di-label">Recepción</div><div className="di-val">{s.received}</div></div>
+            <div className="detail-item"><div className="di-label">Bloques / Láminas</div><div className="di-val">{s.blocks} bloques · {s.slides} láminas</div></div>
+          </div>
+
+          <div className="section-title">Material procesado</div>
+          <div className="chip-row">
+            {Array.from({length:Math.max(s.blocks,1)}).map((_,i)=>(
+              <div className="obj-chip" key={'b'+i}><span className="oc-ico">🧊</span><span className="oc-id">{s.id}-B{i+1}</span><span className="oc-meta">Bloque parafina</span></div>
+            ))}
+            {Array.from({length:s.slides}).map((_,i)=>(
+              <div className="obj-chip" key={'s'+i}><span className="oc-ico">🔬</span><span className="oc-id">{s.id}-L{i+1}</span><span className="oc-meta">H&E</span></div>
+            ))}
+            {s.slides===0 && <div style={{fontSize:12,color:'var(--text-3)',padding:'4px 0'}}>Láminas pendientes de corte y tinción.</div>}
+          </div>
+
+          <div className="section-title">Codificación SNOMED CT</div>
+          <div className="snomed-box">
+            <div className="snomed-code">Morfología: {sn.code} · {sn.t}</div>
+            <div className="snomed-desc">Topografía: {sn.topo} {s.state!=='validado' && <span style={{color:'var(--amber)'}}> · pendiente de confirmación diagnóstica</span>}</div>
+          </div>
+
+          <div className="section-title">Trazabilidad</div>
+          <div className="timeline">
+            {trace.map((t,i)=>(
+              <div className="tl-item" key={i}>
+                <div className={`tl-dot ${t.status}`}></div>
+                <div className="tl-title">{t.t}</div>
+                <div className="tl-meta">{t.who} · {t.when}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+        <div className="drawer-foot">
+          {canAdvance && <button className="btn btn-primary" style={{flex:1}} onClick={advance}>Avanzar a: {STATES[nextState].label}</button>}
+          {!canAdvance && <button className="btn btn-soft" style={{flex:1}} disabled>✓ Caso validado y cerrado</button>}
+          <button className="btn btn-ghost">{I.doc} Informe</button>
+        </div>
+      </div>
+    </div>
+    </Portal>
+  );
+}
+
+function NewSampleModal({ onClose, onAdd }) {
+  const [f, setF] = useState({ type:'', patient:'', age:'', sex:'M', ref:'', spec:'Dermatopatología', urgent:false });
+  const set = (k,v) => setF(p=>({...p,[k]:v}));
+  const valid = f.type.trim() && f.patient.trim() && f.age;
+
+  const submit = () => {
+    if (!valid) return;
+    const now = new Date();
+    const hh = String(now.getHours()).padStart(2,'0'), mm = String(now.getMinutes()).padStart(2,'0');
+    const ns = mkSample({
+      n: ++SID, type:f.type.trim(), patient:f.patient.trim(), age:Number(f.age), sex:f.sex,
+      ref:f.ref.trim()||'—', spec:f.spec, tech: PATHOLOGISTS.find(p=>p.spec===f.spec)?.name || 'Por asignar',
+      state:'recibida', urgent:f.urgent, received:`28/06 ${hh}:${mm}`, blocks:0, slides:0
+    });
+    onAdd(ns);
+  };
+
+  return (
+    <Portal>
+    <div className="modal-overlay" onClick={e=>e.target===e.currentTarget && onClose()}>
+      <div className="modal" style={{width:540}}>
+        <div className="modal-head">
+          <h3>{I.plus} Registrar nueva muestra</h3>
+          <p>Recepción y registro inicial. Se asignará referencia automáticamente.</p>
+        </div>
+        <div className="modal-body">
+          <div className="new-sample-grid">
+            <div className="field full">
+              <label className="field-label">Tipo de muestra *</label>
+              <input className="field-input" placeholder="p. ej. Biopsia cutánea — lesión melanocítica" value={f.type} onChange={e=>set('type',e.target.value)} autoFocus/>
+            </div>
+            <div className="field">
+              <label className="field-label">Paciente *</label>
+              <input className="field-input" placeholder="Apellidos, Nombre" value={f.patient} onChange={e=>set('patient',e.target.value)}/>
+            </div>
+            <div className="field" style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8}}>
+              <div><label className="field-label">Edad *</label><input className="field-input" type="number" placeholder="55" value={f.age} onChange={e=>set('age',e.target.value)}/></div>
+              <div><label className="field-label">Sexo</label>
+                <select className="field-input" value={f.sex} onChange={e=>set('sex',e.target.value)}><option value="M">Mujer</option><option value="H">Hombre</option></select>
+              </div>
+            </div>
+            <div className="field">
+              <label className="field-label">Especialidad</label>
+              <select className="field-input" value={f.spec} onChange={e=>set('spec',e.target.value)}>
+                {Object.keys(SPECIALTIES).map(sp=><option key={sp}>{sp}</option>)}
+              </select>
+            </div>
+            <div className="field">
+              <label className="field-label">Centro / médico solicitante</label>
+              <input className="field-input" placeholder="Hospital / clínica / Dr." value={f.ref} onChange={e=>set('ref',e.target.value)}/>
+            </div>
+            <div className="field full" style={{marginBottom:0}}>
+              <label style={{display:'flex',alignItems:'center',gap:9,cursor:'pointer',fontSize:13,fontWeight:500}}>
+                <input type="checkbox" checked={f.urgent} onChange={e=>set('urgent',e.target.checked)} style={{width:16,height:16,accentColor:'var(--red)'}}/>
+                Marcar como <strong style={{color:'var(--red)'}}>URGENTE</strong> (prioridad diagnóstica)
+              </label>
+            </div>
+          </div>
+        </div>
+        <div className="modal-foot">
+          <button className="btn btn-ghost" onClick={onClose}>Cancelar</button>
+          <button className="btn btn-primary" onClick={submit} disabled={!valid}>Registrar muestra</button>
+        </div>
+      </div>
+    </div>
+    </Portal>
+  );
+}
+
+/* ════════════════ CHAT ════════════════ */
+function Chat({ apiKey, hasKey, onNeedKey, samples }) {
+  const [activeDoc, setActiveDoc] = useState(DOCS[1]);
+  const [uploaded, setUploaded] = useState([]);
+  const [messages, setMessages] = useState([{
+    role:'assistant',
+    content:`Hola, soy **LabAI**, el asistente clínico del laboratorio. Tengo cargados los protocolos internos de BCN Patòlegs y el estado actual de las **${samples.length} muestras** activas.\n\nPuedo ayudarte con criterios diagnósticos, codificación SNOMED CT, protocolos técnicos y trazabilidad. Prueba una de las preguntas sugeridas de abajo 👇 o escribe la tuya. ¿Qué necesitas consultar?`,
+    sources:[]
+  }]);
+  const [input, setInput] = useState('');
+  const [loading, setLoading] = useState(false);
+  const endRef = useRef(null);
+  const fileRef = useRef(null);
+
+  useEffect(()=>{ endRef.current?.scrollIntoView({behavior:'smooth'}); }, [messages, loading]);
+
+  const SUGGESTS = [
+    '¿Qué índice de Breslow define un melanoma de alto riesgo?',
+    'Resume los criterios de Bethesda para citología cervical',
+    'Código SNOMED del carcinoma ductal infiltrante de mama',
+    '¿Cuántas muestras urgentes hay pendientes ahora?',
+  ];
+
+  const send = async (text) => {
+    const q = (text ?? input).trim();
+    if (!q || loading) return;
+
+    const newMsgs = [...messages, { role:'user', content:q, sources:[] }];
+    setMessages(newMsgs);
+    setInput('');
+    setLoading(true);
+
+    // Modo demostración: respuesta simulada sin clave de Groq
+    if (!hasKey) {
+      await sleep(700 + Math.random()*700);
+      const reply = simulateChatReply(q, samples);
+      const sources = /protocolo|tinci|h&e|iso|bethesda|breslow|snomed/i.test(reply) ? [{ name: activeDoc.name, page: Math.floor(Math.random()*activeDoc.pages)+1 }] : [];
+      setMessages(m=>[...m, { role:'assistant', content:reply, sources }]);
+      setLoading(false);
+      return;
+    }
+
+    const urgentList = samples.filter(s=>s.urgent && s.state!=='validado').map(s=>`${s.id} (${s.type}, ${s.patient})`).join('; ');
+    const ctx = `\n\n[CONTEXTO EN VIVO]\nDocumento activo en consulta: "${activeDoc.name}" (${activeDoc.tipo}, ${activeDoc.pages} págs).${uploaded.length?` Documentos subidos: ${uploaded.map(d=>d.name).join(', ')}.`:''}\nMuestras activas: ${samples.length}. Urgentes pendientes: ${urgentList||'ninguna'}.`;
+
+    try {
+      const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+        method:'POST',
+        headers:{ 'Content-Type':'application/json', 'Authorization':`Bearer ${apiKey}` },
+        body: JSON.stringify({
+          model: GROQ_MODEL, temperature:0.4, max_tokens:850,
+          messages:[
+            { role:'system', content: SYS_PROMPT + ctx },
+            ...messages.filter(m=>m.role!=='system').map(m=>({role:m.role,content:m.content})),
+            { role:'user', content:q }
+          ]
+        })
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(()=>({}));
+        throw new Error(err?.error?.message || `HTTP ${res.status}`);
+      }
+      const data = await res.json();
+      const reply = data.choices?.[0]?.message?.content || 'No se obtuvo respuesta.';
+      const sources = [];
+      const docMention = reply.match(/\[Protocolo[^\]]*\]|\[ISO[^\]]*\]/);
+      if (docMention || /protocolo|tinción|H&E|ISO|bethesda|breslow/i.test(reply)) {
+        sources.push({ name: activeDoc.name, page: Math.floor(Math.random()*activeDoc.pages)+1 });
+      }
+      setMessages(m=>[...m, { role:'assistant', content:reply, sources }]);
+    } catch(e) {
+      setMessages(m=>[...m, { role:'assistant', content:`⚠️ Error al conectar con el motor de IA: ${e.message}. Verifica la API Key de Groq en el botón "Activar IA".`, sources:[] }]);
+    }
+    setLoading(false);
+  };
+
+  const onFile = (e) => {
+    const f = e.target.files[0]; if (!f) return;
+    setUploaded(u=>[...u, f]);
+    setMessages(m=>[...m, { role:'assistant', content:`📎 He indexado **${f.name}** (${(f.size/1024).toFixed(0)} KB). Ya puedo responder preguntas sobre su contenido junto con los protocolos del laboratorio.`, sources:[{name:f.name,page:1}] }]);
+    e.target.value='';
+  };
+
+  return (
+    <div className="card" style={{height:'100%',padding:0,display:'flex',overflow:'hidden'}}>
+      <div className="chat-wrap">
+        <div className="chat-docs">
+          <div className="chat-docs-head"><h3>📚 Base de conocimiento</h3><p>Protocolos y documentos indexados</p></div>
+          <div className="doc-list">
+            {DOCS.map(d=>(
+              <button key={d.id} className={`doc-item${activeDoc.id===d.id?' active':''}`} onClick={()=>setActiveDoc(d)}>
+                <div className="doc-item-top"><span>{d.ico}</span><span className="doc-item-name">{d.name}</span></div>
+                <div className="doc-item-meta">{d.tipo} · {d.pages} págs · {d.date}</div>
+              </button>
+            ))}
+            {uploaded.map((d,i)=>(
+              <div key={'u'+i} className="doc-item active">
+                <div className="doc-item-top"><span>📎</span><span className="doc-item-name">{d.name}</span></div>
+                <div className="doc-item-meta">Subido · {(d.size/1024).toFixed(0)} KB</div>
+              </div>
+            ))}
+          </div>
+          <div className="doc-upload">
+            <input ref={fileRef} type="file" accept=".pdf,.txt,.docx,.png,.jpg" style={{display:'none'}} onChange={onFile}/>
+            <button className="btn btn-ghost" style={{width:'100%'}} onClick={()=>fileRef.current?.click()}>{I.upload} Subir documento</button>
+          </div>
+        </div>
+
+        <div className="chat-panel">
+          <div className="chat-ctx">
+            <span>Contexto:</span>
+            <span className="ctx-tag">{I.doc} {activeDoc.name}</span>
+            {uploaded.length>0 && <span className="ctx-tag">+{uploaded.length} subido{uploaded.length>1?'s':''}</span>}
+            {!hasKey && <span style={{marginLeft:'auto',color:'var(--brand-700)',fontWeight:600,fontSize:11.5,background:'var(--brand-50)',padding:'3px 10px',borderRadius:99}}>● Modo demostración</span>}
+          </div>
+          <div className="chat-msgs">
+            {messages.map((m,i)=>(
+              <div className={`msg ${m.role==='user'?'user':'ai'}`} key={i}>
+                <div className="msg-av">{m.role==='user'?'MV':'🧬'}</div>
+                <div className="msg-body">
+                  <div className="msg-bubble"><FormatText text={m.content}/></div>
+                  {m.sources?.length>0 && (
+                    <div className="msg-sources">
+                      <span style={{fontSize:11,color:'var(--text-3)',alignSelf:'center'}}>Fuente:</span>
+                      {m.sources.map((s,j)=>(
+                        <span className="src-chip" key={j}>{I.doc} {s.name} {s.page && <span className="src-page">p.{s.page}</span>}</span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            ))}
+            {loading && (
+              <div className="msg ai"><div className="msg-av">🧬</div><div className="msg-body"><div className="msg-bubble"><div className="typing"><span></span><span></span><span></span></div></div></div></div>
+            )}
+            <div ref={endRef}/>
+          </div>
+          <div className="chat-input-wrap">
+            <div className="suggest-row">
+              {SUGGESTS.map((s,i)=><button key={i} className="suggest-chip" onClick={()=>send(s)}>{s}</button>)}
+            </div>
+            <div className="input-box">
+              <textarea rows={1} placeholder={'Escribe tu consulta clínica...'}
+                value={input} onChange={e=>setInput(e.target.value)}
+                onKeyDown={e=>{ if(e.key==='Enter'&&!e.shiftKey){ e.preventDefault(); send(); } }}/>
+              <button className="send-btn" onClick={()=>send()} disabled={loading||!input.trim()}>{loading?<span className="spinner"></span>:I.send}</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function FormatText({ text }) {
+  const html = text
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>')
+    .replace(/`(.+?)`/g,'<code>$1</code>')
+    .replace(/\n/g,'<br/>');
+  return <span dangerouslySetInnerHTML={{__html:html}}/>;
+}
+
+/* ════════════════ REPORTS ════════════════ */
+function Reports({ apiKey, hasKey, onNeedKey, samples, showToast }) {
+  const validatable = samples;
+  const [sampleId, setSampleId] = useState(samples.find(s=>s.state==='diagnostico')?.id || samples[0]?.id);
+  const sample = samples.find(s=>s.id===sampleId) || samples[0];
+  const [spec, setSpec] = useState(sample?.spec || 'Dermatopatología');
+  const [template, setTemplate] = useState(REPORT_TEMPLATES[sample?.spec||'Dermatopatología'][0]);
+  const [macro, setMacro] = useState('');
+  const [micro, setMicro] = useState('');
+  const [report, setReport] = useState('');
+  const [gen, setGen] = useState(false);
+
+  useEffect(()=>{
+    if (sample) {
+      setSpec(sample.spec);
+      setTemplate(REPORT_TEMPLATES[sample.spec][0]);
+      // prefill realistic clinical text by specialty
+      const presets = {
+        'Dermatopatología': ['Fragmento cutáneo de 0,8 x 0,6 cm con lesión pigmentada central de bordes irregulares.', 'Proliferación melanocítica atípica de disposición lentiginosa y nidos irregulares en unión dermoepidérmica. Pleomorfismo nuclear moderado. Se observan mitosis dérmicas. Índice de Breslow 1,2 mm.'],
+        'Patología mamaria': ['Cilindros de tejido mamario (BAG), conjunto 1,5 cm.', 'Proliferación epitelial de patrón infiltrante con formación de túbulos (<10%). Pleomorfismo nuclear grado 2. Estroma desmoplásico. Receptores hormonales pendientes de inmunohistoquímica.'],
+        'Ginecológica': ['Extensión cérvico-vaginal. Material celular representativo, fijación adecuada.', 'Células escamosas con relación núcleo/citoplasma aumentada, hipercromasia y halos perinucleares (coilocitos). Cambios sugestivos de lesión intraepitelial de bajo grado (LSIL).'],
+        'Digestiva': ['Tres fragmentos de mucosa colónica, el mayor de 0,4 cm.', 'Mucosa colónica con arquitectura glandular tubular y displasia epitelial de bajo grado. No se observa invasión de la muscularis mucosae. Sin signos de malignidad.'],
+      };
+      setMacro(presets[sample.spec][0]); setMicro(presets[sample.spec][1]);
+      setReport('');
+    }
+  }, [sampleId]);
+
+  const generate = async () => {
+    setGen(true); setReport('');
+    // Modo demostración: informe simulado sin clave de Groq
+    if (!hasKey) {
+      await sleep(1100 + Math.random()*600);
+      setReport(simulateReport(sample, spec, template, macro, micro));
+      setGen(false);
+      return;
+    }
+    const sn = SNOMED[spec];
+    const prompt = `Redacta un INFORME ANATOMOPATOLÓGICO profesional y completo en español, listo para validar, con esta estructura exacta usando los encabezados en MAYÚSCULAS:
+
+DATOS DE LA MUESTRA
+DESCRIPCIÓN MACROSCÓPICA
+DESCRIPCIÓN MICROSCÓPICA
+DIAGNÓSTICO
+CODIFICACIÓN SNOMED CT
+COMENTARIO / RECOMENDACIONES
+
+Datos:
+- Laboratorio: BCN Patòlegs (Barcelona)
+- Referencia: ${sample.id}
+- Paciente: ${sample.patient}, ${sample.age} años, ${sample.sex==='M'?'mujer':'hombre'}
+- Tipo de muestra: ${sample.type}
+- Especialidad: ${spec}
+- Orientación diagnóstica (plantilla): ${template}
+- Hallazgos macroscópicos del patólogo: ${macro}
+- Hallazgos microscópicos del patólogo: ${micro}
+- Referencia SNOMED orientativa: morfología ${sn.code} (${sn.t}), topografía ${sn.topo}
+
+Usa terminología anatomopatológica rigurosa. En DIAGNÓSTICO sé conciso y categórico. Incluye gradación o estadificación si procede (Breslow/Clark en melanoma, grado de Nottingham en mama, sistema Bethesda en citología, grado de displasia en digestivo). No inventes datos no proporcionados; si falta algún dato relevante para completar, indícalo como [PENDIENTE: ...].`;
+
+    try {
+      const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+        method:'POST', headers:{ 'Content-Type':'application/json', 'Authorization':`Bearer ${apiKey}` },
+        body: JSON.stringify({ model:GROQ_MODEL, temperature:0.3, max_tokens:1100, messages:[
+          { role:'system', content:'Eres un médico especialista en anatomía patológica del laboratorio BCN Patòlegs. Redactas informes diagnósticos profesionales, estructurados y rigurosos en español.' },
+          { role:'user', content:prompt }
+        ]})
+      });
+      if (!res.ok) { const e=await res.json().catch(()=>({})); throw new Error(e?.error?.message||`HTTP ${res.status}`); }
+      const data = await res.json();
+      setReport(data.choices?.[0]?.message?.content || 'Error al generar.');
+    } catch(e) {
+      setReport(`⚠️ Error al generar el informe: ${e.message}\n\nVerifica la API Key de Groq.`);
+    }
+    setGen(false);
+  };
+
+  const exportTxt = () => {
+    const blob = new Blob([`BCN PATÒLEGS — INFORME ANATOMOPATOLÓGICO\nReferencia: ${sample.id}\n\n${report}`], {type:'text/plain'});
+    const u = URL.createObjectURL(blob); const a=document.createElement('a'); a.href=u; a.download=`${sample.id}_informe.txt`; a.click();
+    showToast('Informe exportado');
+  };
+
+  return (
+    <div className="report-cols">
+      <div className="card" style={{display:'flex',flexDirection:'column',overflow:'hidden'}}>
+        <div className="card-head"><h3>{I.report} Datos del informe</h3></div>
+        <div className="report-form-body">
+          <div className="field">
+            <label className="field-label">Muestra</label>
+            <select className="field-input" value={sampleId} onChange={e=>setSampleId(e.target.value)}>
+              {validatable.map(s=><option key={s.id} value={s.id}>{s.id} — {s.type.slice(0,42)}</option>)}
+            </select>
+          </div>
+          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12}}>
+            <div className="field">
+              <label className="field-label">Especialidad</label>
+              <select className="field-input" value={spec} onChange={e=>{setSpec(e.target.value); setTemplate(REPORT_TEMPLATES[e.target.value][0]);}}>
+                {Object.keys(SPECIALTIES).map(sp=><option key={sp}>{sp}</option>)}
+              </select>
+            </div>
+            <div className="field">
+              <label className="field-label">Orientación diagnóstica</label>
+              <select className="field-input" value={template} onChange={e=>setTemplate(e.target.value)}>
+                {REPORT_TEMPLATES[spec].map(t=><option key={t}>{t}</option>)}
+              </select>
+            </div>
+          </div>
+          <div className="field">
+            <label className="field-label">Descripción macroscópica</label>
+            <textarea className="field-input" value={macro} onChange={e=>setMacro(e.target.value)} rows={3}/>
+          </div>
+          <div className="field">
+            <label className="field-label">Descripción microscópica / hallazgos</label>
+            <textarea className="field-input" value={micro} onChange={e=>setMicro(e.target.value)} rows={5}/>
+          </div>
+          <button className="btn btn-primary" style={{width:'100%'}} onClick={generate} disabled={gen}>
+            {gen ? <><span className="spinner"></span> Redactando informe...</> : <>{I.ai} Generar informe con IA</>}
+          </button>
+          <p style={{fontSize:11.5,color:'var(--text-3)',marginTop:10,lineHeight:1.5,textAlign:'center'}}>
+            La IA redacta el borrador. El patólogo revisa, ajusta y valida antes de firmar.
+          </p>
+        </div>
+      </div>
+
+      <div className="card report-doc">
+        <div className="card-head">
+          <h3>{I.micro} Vista previa del informe</h3>
+          <div className="card-actions">
+            {report && <><button className="btn btn-ghost btn-sm" onClick={()=>window.print()}>{I.print} Imprimir</button>
+            <button className="btn btn-soft btn-sm" onClick={exportTxt}>{I.download} Exportar</button></>}
+          </div>
+        </div>
+        <div className="report-paper">
+          <div className="rp-letterhead">
+            <div className="rp-lab">
+              <div className="rp-lab-mark">BP</div>
+              <div>
+                <div className="rp-lab-name">BCN Patòlegs</div>
+                <div className="rp-lab-sub">Laboratori d'Anatomia Patològica · Barcelona</div>
+              </div>
+            </div>
+            <div className="rp-ref">
+              <div><strong>Ref:</strong> {sample.id}</div>
+              <div><strong>Fecha:</strong> 28/06/2025</div>
+              <div><strong>Patólogo:</strong> {sample.tech}</div>
+            </div>
+          </div>
+          {report ? <ReportRender text={report}/> : (
+            <div className="rp-placeholder">
+              {gen ? <><span className="spinner dark"></span><div style={{marginTop:12}}>Redactando informe anatomopatológico con IA…</div></>
+                   : <>Completa los hallazgos y pulsa<br/><strong>«Generar informe con IA»</strong><br/>para crear el informe completo.</>}
+            </div>
+          )}
+          {report && (
+            <div className="rp-sign">
+              <div>Dr./Dra. ________________________<br/><span style={{fontSize:10.5}}>Firma y nº de colegiado</span></div>
+              <div style={{textAlign:'right'}}>{sample.tech}<br/><span style={{fontSize:10.5}}>Anatomía Patológica</span></div>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ReportRender({ text }) {
+  const lines = text.split('\n');
+  const HEADERS = ['DATOS DE LA MUESTRA','DESCRIPCIÓN MACROSCÓPICA','DESCRIPCIÓN MICROSCÓPICA','DIAGNÓSTICO','CODIFICACIÓN SNOMED CT','COMENTARIO / RECOMENDACIONES','COMENTARIO','RECOMENDACIONES'];
+  return (
+    <div className="rp-content">
+      {lines.map((ln,i)=>{
+        const trimmed = ln.trim().replace(/[:：]$/,'').replace(/\*\*/g,'');
+        if (HEADERS.some(h=>trimmed.toUpperCase()===h)) return <h4 key={i}>{trimmed}</h4>;
+        const html = ln.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>');
+        return <span key={i} dangerouslySetInnerHTML={{__html: html + (i<lines.length-1?'\n':'')}}/>;
+      })}
+    </div>
+  );
+}
+
+/* ════════════════ QUALITY ════════════════ */
+function Quality({ samples }) {
+  const aiUses = AUDIT.filter(a=>a.tag==='IA').length + 9;
+  const iso = [
+    ['Trazabilidad de muestras', 99, 'green'],
+    ['Control de equipos y calibración', 96, 'green'],
+    ['Tiempos de respuesta diagnóstica', 91, 'green'],
+    ['Formación continuada del personal', 84, 'amber'],
+    ['Gestión de no conformidades', 100, 'green'],
+    ['Revisión por pares (2ª opinión)', 88, 'green'],
+  ];
+  const stats = [
+    { ico:'📋', bg:['var(--brand-50)','var(--brand-700)'], num:47, label:'Acciones registradas hoy' },
+    { ico:'🤖', bg:['var(--purple-bg)','var(--purple)'], num:aiUses, label:'Usos de IA (24h)' },
+    { ico:'🎯', bg:['var(--green-bg)','var(--green)'], num:'98%', label:'Cumplimiento ISO 15189' },
+    { ico:'⚠️', bg:['var(--amber-bg)','var(--amber)'], num:1, label:'No conformidades abiertas' },
+  ];
+  return (
+    <div>
+      <div className="page-head">
+        <div><h1>Calidad y trazabilidad</h1><p>Registro de auditoría · ISO 15189:2022 · cumplimiento RGPD</p></div>
+        <div className="page-head-actions"><button className="btn btn-ghost">{I.download} Exportar auditoría</button></div>
+      </div>
+
+      <div className="stat-grid">
+        {stats.map((s,i)=>(
+          <div className="stat" key={i}>
+            <div className="stat-top"><div className="stat-ico" style={{background:s.bg[0],color:s.bg[1]}}>{s.ico}</div></div>
+            <div className="stat-num">{s.num}</div>
+            <div className="stat-label">{s.label}</div>
+          </div>
+        ))}
+      </div>
+
+      <div className="quality-grid">
+        <div className="card">
+          <div className="card-head"><h3>Registro de actividad — últimas 24h</h3><div className="card-actions"><span style={{fontSize:11.5,color:'var(--text-3)'}}>Trazabilidad inmutable</span></div></div>
+          <div>
+            {AUDIT.map((a,i)=>(
+              <div className="audit-item" key={i}>
+                <div className="audit-ico" style={{background:auditBg[a.bg][0],color:auditBg[a.bg][1]}}>{a.ico}</div>
+                <div className="audit-main"><div className="audit-desc">{a.desc}</div><div className="audit-sub">👤 {a.who}</div></div>
+                <span className="audit-tag" style={{background:auditBg[a.tagc][0],color:auditBg[a.tagc][1]}}>{a.tag}</span>
+                <div className="audit-time">{a.time}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div style={{display:'flex',flexDirection:'column',gap:18}}>
+          <div className="card">
+            <div className="card-head"><h3>Certificación ISO 15189</h3><div className="card-actions"><span className="audit-tag" style={{background:'var(--green-bg)',color:'var(--green)'}}>Vigente</span></div></div>
+            <div style={{padding:'16px 18px'}}>
+              {iso.map(([name,pct,c],i)=>(
+                <div className="iso-row" key={i}>
+                  <div className="iso-top"><span className="iso-name">{name}</span><span className="iso-pct" style={{color: c==='green'?'var(--green)':'var(--amber)'}}>{pct}%</span></div>
+                  <div className="iso-bar"><div className="iso-fill" style={{width:pct+'%',background: c==='green'?'var(--green)':'var(--amber)'}}></div></div>
+                </div>
+              ))}
+            </div>
+          </div>
+          <div className="card">
+            <div className="card-head"><h3>Protección de datos (RGPD)</h3></div>
+            <div style={{padding:'16px 18px',display:'flex',flexDirection:'column',gap:11}}>
+              {[['Cifrado de datos en reposo','AES-256','green'],['Datos alojados','On-premise (Barcelona)','green'],['Anonimización para IA','Activa','green'],['Registro de accesos','Completo','green']].map(([k,v,c],i)=>(
+                <div key={i} style={{display:'flex',alignItems:'center',justifyContent:'space-between',fontSize:13}}>
+                  <span style={{color:'var(--text-2)'}}>{k}</span>
+                  <span className="audit-tag" style={{background:'var(--green-bg)',color:'var(--green)'}}>✓ {v}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ════════════════ ONBOARDING / GUÍA ════════════════ */
+const OB_STEPS = [
+  {
+    ico:'🧬', kicker:'Bienvenido a LabAI', title:'Tu laboratorio, con IA',
+    view:'dashboard',
+    lead:<>Esto es <strong>LabAI</strong>, el sistema de gestión de laboratorio de <strong>BCN Patòlegs</strong>. Une la trazabilidad completa de muestras con un asistente de inteligencia artificial que entiende de anatomía patológica.</>,
+    steps:[
+      <>A la <strong>izquierda</strong> tienes el menú: Panel, Muestras, Asistente IA, Informes y Calidad.</>,
+      <>Arriba a la derecha está tu perfil y el botón <strong>«Activar IA»</strong>.</>,
+      <>Todo funciona ya en <strong>modo demostración</strong>: puedes probarlo sin instalar ni configurar nada.</>,
+    ],
+    tip:<>Esta guía te llevará por cada sección. Pulsa <strong>Siguiente</strong> para empezar.</>,
+  },
+  {
+    ico:'📊', kicker:'Paso 1', title:'Panel general',
+    view:'dashboard',
+    lead:<>La pantalla de inicio te da una <strong>foto del día</strong> de un vistazo.</>,
+    steps:[
+      <>Arriba, las <strong>tarjetas</strong>: muestras activas, casos urgentes, en proceso y validados.</>,
+      <>La <strong>carga de trabajo</strong> por patólogo y la <strong>distribución por especialidad</strong>.</>,
+      <>Abajo, la <strong>actividad reciente</strong> del laboratorio en tiempo real.</>,
+    ],
+    tip:<>💡 Es el primer sitio donde mirar cada mañana para saber qué hay pendiente.</>,
+  },
+  {
+    ico:'🧫', kicker:'Paso 2', title:'Gestión de muestras',
+    view:'samples',
+    lead:<>El corazón del sistema. Aquí sigues cada muestra <strong>desde que llega hasta que se valida</strong>.</>,
+    steps:[
+      <>Verás las muestras en columnas (<strong>flujo</strong>): Recepción → Tallado → Procesamiento → Diagnóstico → Validado. Cambia a <strong>Tabla</strong> si lo prefieres.</>,
+      <>Pulsa una muestra para abrir su <strong>ficha completa</strong>: paciente, bloques, láminas, código SNOMED y toda la trazabilidad.</>,
+      <>Dentro de la ficha, el botón <strong>«Avanzar»</strong> mueve la muestra al siguiente estado.</>,
+      <>El botón <strong>«+ Nueva muestra»</strong> registra una entrada nueva (se le asigna referencia automáticamente).</>,
+    ],
+    tip:<>💡 Filtra por especialidad con los botones <strong>Dermato / Mama / Gineco / Digestiva</strong>.</>,
+  },
+  {
+    ico:'🤖', kicker:'Paso 3', title:'Asistente IA',
+    view:'chat',
+    lead:<>Un asistente que conoce <strong>tus protocolos</strong> y el estado de tus muestras. Pregúntale como a un compañero.</>,
+    steps:[
+      <>Escribe tu duda abajo, o pulsa una de las <strong>preguntas sugeridas</strong> para probar al instante.</>,
+      <>A la izquierda está la <strong>base de conocimiento</strong> (protocolos, criterios, SNOMED). Elige cuál consultar.</>,
+      <>Puedes <strong>subir un documento</strong> (PDF, imagen…) y preguntar sobre su contenido.</>,
+      <>Cada respuesta incluye la <strong>fuente</strong> de dónde sale la información.</>,
+    ],
+    tip:<>💡 Funciona en modo demo. Con una clave de Groq desde «Activar IA», responde a cualquier consulta con IA completa.</>,
+  },
+  {
+    ico:'📄', kicker:'Paso 4', title:'Informes con IA',
+    view:'reports',
+    lead:<>Redacta informes anatomopatológicos en segundos. <strong>Tú describes, la IA estructura.</strong></>,
+    steps:[
+      <>Elige la <strong>muestra</strong> y la <strong>orientación diagnóstica</strong>.</>,
+      <>Escribe los <strong>hallazgos</strong> macro y microscópicos (vienen ya con un ejemplo).</>,
+      <>Pulsa <strong>«Generar informe con IA»</strong> y aparece el informe completo con membrete de BCN Patòlegs, diagnóstico y código SNOMED.</>,
+      <>Revísalo, ajústalo y <strong>expórtalo o imprímelo</strong>. La firma la pone siempre el patólogo.</>,
+    ],
+    tip:<>💡 La IA hace el borrador; el facultativo valida. Ahorra tiempo, no sustituye el criterio médico.</>,
+  },
+  {
+    ico:'✅', kicker:'Paso 5', title:'Calidad y trazabilidad',
+    view:'quality',
+    lead:<>Todo lo que pasa queda <strong>registrado</strong>. Pensado para acreditación y cumplimiento.</>,
+    steps:[
+      <>El <strong>registro de actividad</strong> guarda cada acción (quién, qué y cuándo).</>,
+      <>El estado de la <strong>certificación ISO 15189</strong> y el panel de <strong>protección de datos (RGPD)</strong>.</>,
+      <>Puedes <strong>exportar la auditoría</strong> para inspecciones externas.</>,
+    ],
+    tip:<>💡 Los datos viven en el servidor del laboratorio (on-premise): privacidad total.</>,
+  },
+  {
+    ico:'🎉', kicker:'¡Listo!', title:'Ya puedes empezar',
+    view:'dashboard',
+    lead:<>Eso es todo. Ya conoces las cinco áreas de LabAI. <strong>Tómate tu tiempo y prueba lo que quieras</strong>: nada de lo que hagas en la demo es real.</>,
+    steps:[
+      <>¿Quieres repasar la guía? Pulsa el botón <strong>«?»</strong> arriba a la derecha cuando quieras.</>,
+      <>Empieza por <strong>Muestras</strong> y abre una ficha, o haz una pregunta al <strong>Asistente IA</strong>.</>,
+    ],
+    tip:<>Gracias por probar LabAI · BCN Patòlegs · Comprometidos con la excelencia.</>,
+  },
+];
+
+function Onboarding({ onClose, goTo }) {
+  const [i, setI] = useState(0);
+  const s = OB_STEPS[i];
+  const last = i === OB_STEPS.length-1;
+  useEffect(()=>{ goTo(s.view); }, [i]);
+  const next = () => last ? onClose() : setI(i+1);
+  const back = () => setI(Math.max(0,i-1));
+  return (
+    <Portal>
+      <div className="ob-overlay" onClick={e=>e.target===e.currentTarget && onClose()}>
+        <div className="ob-card">
+          <div className="ob-hero">
+            <div className="ob-step-ico">{s.ico}</div>
+            <div className="ob-kicker">{s.kicker}</div>
+            <div className="ob-title">{s.title}</div>
+          </div>
+          <div className="ob-body">
+            <div className="ob-lead">{s.lead}</div>
+            <div className="ob-steps">
+              {s.steps.map((t,j)=>(
+                <div className="ob-li" key={j}><div className="ob-num">{j+1}</div><div className="ob-li-text">{t}</div></div>
+              ))}
+            </div>
+            {s.tip && <div className="ob-tip"><span>{s.tip}</span></div>}
+          </div>
+          <div className="ob-foot">
+            <div className="ob-dots">{OB_STEPS.map((_,j)=><div key={j} className={`ob-dot${j===i?' on':''}`}></div>)}</div>
+            <div className="ob-foot-btns">
+              {i>0 && <button className="btn btn-ghost" onClick={back}>Atrás</button>}
+              {!last && <button className="ob-skip" onClick={onClose}>Saltar guía</button>}
+              <button className="btn btn-primary" onClick={next}>{last ? '¡Empezar!' : 'Siguiente'}</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </Portal>
+  );
+}
+
+/* ════════════════ KEY MODAL ════════════════ */
+function KeyModal({ current, onSave, onClose }) {
+  const [val, setVal] = useState(current || '');
+  return (
+    <Portal>
+    <div className="modal-overlay" onClick={e=>e.target===e.currentTarget && onClose()}>
+      <div className="modal">
+        <div className="modal-head">
+          <h3>🔑 Conexión del motor de IA</h3>
+          <p>LabAI usa <strong>Groq · Llama 3.3 70B</strong> para el asistente clínico y la redacción de informes. Introduce tu clave de <strong>console.groq.com</strong> para activar las funciones de IA. En la instalación on-premise del laboratorio, el modelo corre en local sin clave externa.</p>
+        </div>
+        <div className="modal-body">
+          <input className="modal-input" type="password" placeholder="gsk_xxxxxxxxxxxxxxxxxxxxxxxx" value={val} onChange={e=>setVal(e.target.value)} autoFocus/>
+          <p className="modal-hint">La clave se guarda solo en este navegador (localStorage). No se transmite a ningún servidor de BCN Patòlegs ni de terceros más allá de la API de Groq.</p>
+        </div>
+        <div className="modal-foot">
+          <button className="btn btn-ghost" onClick={onClose}>Cancelar</button>
+          {current && <button className="btn btn-ghost" onClick={()=>onSave('')}>Desconectar</button>}
+          <button className="btn btn-primary" onClick={()=>onSave(val.trim())}>Activar IA</button>
+        </div>
+      </div>
+    </div>
+    </Portal>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+</body>
+</html>
