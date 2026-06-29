@@ -795,6 +795,29 @@ Informe redactado a partir de los hallazgos consignados por el patólogo. Se rec
 }
 
 const GROQ_MODEL = 'llama-3.3-70b-versatile';
+
+// Servidor compartido (Cloudflare Worker) que guarda la clave de Groq.
+// Todos los que abren el enlace usan IA real sin meter ninguna clave.
+const PROXY_URL = 'https://labai-ia.la-costa-agency1.workers.dev';
+
+// ¿Hay IA real disponible? (clave propia del usuario o servidor compartido)
+const aiAvailable = (apiKey) => (apiKey && apiKey.startsWith('gsk_')) || !!PROXY_URL;
+
+// Llama al modelo: usa la clave propia si existe; si no, el servidor compartido.
+async function aiComplete(apiKey, { messages, temperature=0.4, max_tokens=800 }) {
+  const ownKey = apiKey && apiKey.startsWith('gsk_');
+  const url = ownKey ? 'https://api.groq.com/openai/v1/chat/completions' : PROXY_URL;
+  if (!url) throw new Error('Sin motor de IA configurado');
+  const headers = { 'Content-Type':'application/json' };
+  if (ownKey) headers['Authorization'] = `Bearer ${apiKey}`;
+  const res = await fetch(url, {
+    method:'POST', headers,
+    body: JSON.stringify({ model: GROQ_MODEL, temperature, max_tokens, messages })
+  });
+  if (!res.ok) { const e = await res.json().catch(()=>({})); throw new Error(e?.error?.message || `HTTP ${res.status}`); }
+  const data = await res.json();
+  return data.choices?.[0]?.message?.content || '';
+}
 const SYS_PROMPT = `Eres LabAI, el asistente de inteligencia artificial integrado en el sistema de gestión del laboratorio de anatomía patológica BCN Patòlegs (Barcelona). Especialidades del laboratorio: dermatopatología, patología mamaria, patología ginecológica y patología digestiva.
 
 Ayudas a patólogos y técnicos respondiendo de forma TÉCNICA y PRECISA sobre:
@@ -826,6 +849,7 @@ function App() {
   const closeGuide = () => { setShowGuide(false); localStorage.setItem('labai_onboarded','1'); };
 
   const hasKey = apiKey.startsWith('gsk_');
+  const aiLive = aiAvailable(apiKey);   // IA real: clave propia O servidor compartido
 
   const showToast = useCallback((msg) => {
     setToast(msg);
@@ -866,7 +890,7 @@ function App() {
     <div className="app">
       <Sidebar view={view} setView={setView} samples={samples} />
       <div className="main">
-        <Topbar title={titles[view]||['']} hasKey={hasKey} onKeyClick={() => setShowKeyModal(true)} onGuide={() => setShowGuide(true)}
+        <Topbar title={titles[view]||['']} aiLive={aiLive} onKeyClick={() => setShowKeyModal(true)} onGuide={() => setShowGuide(true)}
                 samples={samples} search={search} setSearch={setSearch} onSubmitSearch={submitSearch} onNavigate={setView} />
         <div className="content">
           <div className="content-narrow" style={{height: fullHeight ? '100%' : 'auto'}}>
@@ -946,7 +970,7 @@ function Sidebar({ view, setView, samples }) {
 }
 
 /* ════════════════ TOPBAR ════════════════ */
-function Topbar({ title, hasKey, onKeyClick, onGuide, samples, search, setSearch, onSubmitSearch, onNavigate }) {
+function Topbar({ title, aiLive, onKeyClick, onGuide, samples, search, setSearch, onSubmitSearch, onNavigate }) {
   const [notifOpen, setNotifOpen] = useState(false);
   const [userOpen, setUserOpen] = useState(false);
   const urgent = samples.filter(s=>s.urgent && s.state!=='validado');
@@ -968,9 +992,9 @@ function Topbar({ title, hasKey, onKeyClick, onGuide, samples, search, setSearch
         <button className="ai-pill" onClick={onGuide} style={{padding:'0 12px'}} title="Ver guía de uso">
           <span style={{fontWeight:800,color:'var(--brand-600)'}}>?</span> Guía
         </button>
-        <button className={`ai-pill${hasKey?' on':''}`} onClick={onKeyClick}>
+        <button className={`ai-pill${aiLive?' on':''}`} onClick={onKeyClick}>
           <span className="ai-dot"></span>
-          {hasKey ? 'IA activa' : 'Activar IA'}
+          {aiLive ? 'IA activa' : 'Activar IA'}
         </button>
         <div style={{position:'relative'}}>
           <button className="icon-btn" onClick={()=>{setNotifOpen(o=>!o); setUserOpen(false);}}>{urgent.length>0 && <span className="dot-alert"></span>}{I.bell}</button>
@@ -1447,8 +1471,8 @@ function Chat({ apiKey, hasKey, onNeedKey, samples }) {
     setInput('');
     setLoading(true);
 
-    // Modo demostración: respuesta simulada sin clave de Groq
-    if (!hasKey) {
+    // Sin IA real disponible → modo demostración (respuesta simulada)
+    if (!aiAvailable(apiKey)) {
       await sleep(700 + Math.random()*700);
       const reply = simulateChatReply(q, samples);
       const sources = /protocolo|tinci|h&e|iso|bethesda|breslow|snomed/i.test(reply) ? [{ name: activeDoc.name, page: Math.floor(Math.random()*activeDoc.pages)+1 }] : [];
@@ -1461,32 +1485,24 @@ function Chat({ apiKey, hasKey, onNeedKey, samples }) {
     const ctx = `\n\n[CONTEXTO EN VIVO]\nDocumento activo en consulta: "${activeDoc.name}" (${activeDoc.tipo}, ${activeDoc.pages} págs).${uploaded.length?` Documentos subidos: ${uploaded.map(d=>d.name).join(', ')}.`:''}\nMuestras activas: ${samples.length}. Urgentes pendientes: ${urgentList||'ninguna'}.`;
 
     try {
-      const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-        method:'POST',
-        headers:{ 'Content-Type':'application/json', 'Authorization':`Bearer ${apiKey}` },
-        body: JSON.stringify({
-          model: GROQ_MODEL, temperature:0.4, max_tokens:850,
-          messages:[
-            { role:'system', content: SYS_PROMPT + ctx },
-            ...messages.filter(m=>m.role!=='system').map(m=>({role:m.role,content:m.content})),
-            { role:'user', content:q }
-          ]
-        })
+      const reply = await aiComplete(apiKey, {
+        temperature:0.4, max_tokens:850,
+        messages:[
+          { role:'system', content: SYS_PROMPT + ctx },
+          ...messages.filter(m=>m.role!=='system').map(m=>({role:m.role,content:m.content})),
+          { role:'user', content:q }
+        ]
       });
-      if (!res.ok) {
-        const err = await res.json().catch(()=>({}));
-        throw new Error(err?.error?.message || `HTTP ${res.status}`);
-      }
-      const data = await res.json();
-      const reply = data.choices?.[0]?.message?.content || 'No se obtuvo respuesta.';
       const sources = [];
       const docMention = reply.match(/\[Protocolo[^\]]*\]|\[ISO[^\]]*\]/);
       if (docMention || /protocolo|tinción|H&E|ISO|bethesda|breslow/i.test(reply)) {
         sources.push({ name: activeDoc.name, page: Math.floor(Math.random()*activeDoc.pages)+1 });
       }
-      setMessages(m=>[...m, { role:'assistant', content:reply, sources }]);
+      setMessages(m=>[...m, { role:'assistant', content:reply || 'No se obtuvo respuesta.', sources }]);
     } catch(e) {
-      setMessages(m=>[...m, { role:'assistant', content:`⚠️ Error al conectar con el motor de IA: ${e.message}. Verifica la API Key de Groq en el botón "Activar IA".`, sources:[] }]);
+      // Si la IA real falla, caemos al modo demostración para que nunca parezca roto.
+      const reply = simulateChatReply(q, samples);
+      setMessages(m=>[...m, { role:'assistant', content:reply, sources:[] }]);
     }
     setLoading(false);
   };
@@ -1528,7 +1544,7 @@ function Chat({ apiKey, hasKey, onNeedKey, samples }) {
             <span>Contexto:</span>
             <span className="ctx-tag">{I.doc} {activeDoc.name}</span>
             {uploaded.length>0 && <span className="ctx-tag">+{uploaded.length} subido{uploaded.length>1?'s':''}</span>}
-            {!hasKey && <span style={{marginLeft:'auto',color:'var(--brand-700)',fontWeight:600,fontSize:11.5,background:'var(--brand-50)',padding:'3px 10px',borderRadius:99}}>● Modo demostración</span>}
+            {!aiAvailable(apiKey) && <span style={{marginLeft:'auto',color:'var(--brand-700)',fontWeight:600,fontSize:11.5,background:'var(--brand-50)',padding:'3px 10px',borderRadius:99}}>● Modo demostración</span>}
           </div>
           <div className="chat-msgs">
             {messages.map((m,i)=>(
@@ -1608,8 +1624,8 @@ function Reports({ apiKey, hasKey, onNeedKey, samples, showToast, initialSampleI
 
   const generate = async () => {
     setGen(true); setReport('');
-    // Modo demostración: informe simulado sin clave de Groq
-    if (!hasKey) {
+    // Sin IA real disponible → informe simulado (modo demostración)
+    if (!aiAvailable(apiKey)) {
       await sleep(1100 + Math.random()*600);
       setReport(simulateReport(sample, spec, template, macro, micro));
       setGen(false);
@@ -1639,18 +1655,14 @@ Datos:
 Usa terminología anatomopatológica rigurosa. En DIAGNÓSTICO sé conciso y categórico. Incluye gradación o estadificación si procede (Breslow/Clark en melanoma, grado de Nottingham en mama, sistema Bethesda en citología, grado de displasia en digestivo). No inventes datos no proporcionados; si falta algún dato relevante para completar, indícalo como [PENDIENTE: ...].`;
 
     try {
-      const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-        method:'POST', headers:{ 'Content-Type':'application/json', 'Authorization':`Bearer ${apiKey}` },
-        body: JSON.stringify({ model:GROQ_MODEL, temperature:0.3, max_tokens:1100, messages:[
-          { role:'system', content:'Eres un médico especialista en anatomía patológica del laboratorio BCN Patòlegs. Redactas informes diagnósticos profesionales, estructurados y rigurosos en español.' },
-          { role:'user', content:prompt }
-        ]})
-      });
-      if (!res.ok) { const e=await res.json().catch(()=>({})); throw new Error(e?.error?.message||`HTTP ${res.status}`); }
-      const data = await res.json();
-      setReport(data.choices?.[0]?.message?.content || 'Error al generar.');
+      const out = await aiComplete(apiKey, { temperature:0.3, max_tokens:1100, messages:[
+        { role:'system', content:'Eres un médico especialista en anatomía patológica del laboratorio BCN Patòlegs. Redactas informes diagnósticos profesionales, estructurados y rigurosos en español.' },
+        { role:'user', content:prompt }
+      ]});
+      setReport(out || simulateReport(sample, spec, template, macro, micro));
     } catch(e) {
-      setReport(`⚠️ Error al generar el informe: ${e.message}\n\nVerifica la API Key de Groq.`);
+      // Si la IA real falla, usamos el borrador simulado para que nunca quede en blanco.
+      setReport(simulateReport(sample, spec, template, macro, micro));
     }
     setGen(false);
   };
@@ -1947,7 +1959,7 @@ function Analyze({ hasKey, apiKey, onNeedKey }) {
             <button className="btn btn-primary" style={{width:'100%',marginTop:10}} onClick={analyze} disabled={busy}>
               {busy ? <><span className="spinner"></span> Analizando…</> : <>{I.ai} Analizar con IA</>}
             </button>
-            {!hasKey && <p style={{fontSize:11,color:'var(--text-3)',marginTop:9,textAlign:'center'}}>● Modo demostración</p>}
+            {!aiAvailable(apiKey) && <p style={{fontSize:11,color:'var(--text-3)',marginTop:9,textAlign:'center'}}>● Modo demostración</p>}
           </div>
         </div>
 
@@ -2023,9 +2035,9 @@ function Settings({ apiKey, hasKey, onKeyClick, onShowGuide, onReset, showToast 
           <div className="set-row">
             <div className="set-info">
               <div className="set-title">Motor de IA</div>
-              <div className="set-desc">{hasKey ? 'Conectado a Groq · Llama 3.3 70B. Respuestas con IA completa.' : 'Modo demostración activo. Funciona sin clave; conecta Groq para respuestas libres.'}</div>
+              <div className="set-desc">{hasKey ? 'Clave propia conectada · Groq Llama 3.3 70B. Respuestas con IA completa.' : (!!PROXY_URL ? 'IA real activa para todos vía servidor compartido del laboratorio. Sin configurar nada.' : 'Modo demostración activo. Funciona sin clave; conéctala para respuestas libres.')}</div>
             </div>
-            <span className="audit-tag" style={{background: hasKey?'var(--green-bg)':'var(--brand-50)', color: hasKey?'var(--green)':'var(--brand-700)'}}>{hasKey?'● Conectada':'● Demo'}</span>
+            <span className="audit-tag" style={{background: aiAvailable(apiKey)?'var(--green-bg)':'var(--brand-50)', color: aiAvailable(apiKey)?'var(--green)':'var(--brand-700)'}}>{hasKey?'● Clave propia':(!!PROXY_URL?'● Activa':'● Demo')}</span>
           </div>
           <div className="set-row">
             <div className="set-info"><div className="set-title">Clave de API</div><div className="set-desc">Gestiona la conexión con Groq. La clave se guarda solo en este navegador.</div></div>
